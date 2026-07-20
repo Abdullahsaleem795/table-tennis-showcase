@@ -2,6 +2,19 @@ const fs = require('fs');
 const path = require('path');
 const playerService = require('../services/playerService');
 
+// Helper to convert uploaded files to Base64 strings
+function fileToBase64(file) {
+  if (!file) return '';
+  try {
+    const fileData = fs.readFileSync(file.path);
+    const base64String = fileData.toString('base64');
+    return `data:${file.mimetype};base64,${base64String}`;
+  } catch (err) {
+    console.error("Error converting file to Base64:", err);
+    return '';
+  }
+}
+
 // Helper to delete local uploads
 function deleteLocalFile(fileUrl) {
   if (!fileUrl || !fileUrl.startsWith('/uploads/')) return;
@@ -13,7 +26,6 @@ function deleteLocalFile(fileUrl) {
     if (!err) {
       fs.unlink(filePath, (unlinkErr) => {
         if (unlinkErr) console.error(`Error deleting file: ${filePath}`, unlinkErr);
-        else console.log(`Deleted orphaned upload: ${filePath}`);
       });
     }
   });
@@ -83,21 +95,27 @@ module.exports = {
         }
       }
 
-      // Handle avatar file
+      // Handle avatar file (Base64)
       let avatarUrl = '';
       if (req.files && req.files.avatar && req.files.avatar[0]) {
-        avatarUrl = `/uploads/${req.files.avatar[0].filename}`;
+        const file = req.files.avatar[0];
+        avatarUrl = fileToBase64(file);
+        // Delete local temp file
+        fs.unlinkSync(file.path);
       }
 
-      // Handle gallery files
+      // Handle gallery files (Base64)
       const gallery = [];
       if (req.files && req.files.gallery) {
         req.files.gallery.forEach(file => {
-          gallery.push(`/uploads/${file.filename}`);
+          const base64Str = fileToBase64(file);
+          if (base64Str) gallery.push(base64Str);
+          // Delete local temp file
+          fs.unlinkSync(file.path);
         });
       }
 
-      // Handle video file or external link
+      // Handle video file (ephemeral local) or external link (recommended)
       let promoVideo = { type: 'external', url: '' };
       if (req.files && req.files.video && req.files.video[0]) {
         promoVideo = {
@@ -127,12 +145,12 @@ module.exports = {
 
       res.status(201).json(player);
     } catch (err) {
-      // Clean up uploaded files in case of error
+      // Clean up local temp files on error
       if (req.files) {
-        if (req.files.avatar && req.files.avatar[0]) deleteLocalFile(`/uploads/${req.files.avatar[0].filename}`);
-        if (req.files.video && req.files.video[0]) deleteLocalFile(`/uploads/${req.files.video[0].filename}`);
+        if (req.files.avatar && req.files.avatar[0]) fs.unlink(req.files.avatar[0].path, () => {});
+        if (req.files.video && req.files.video[0]) fs.unlink(req.files.video[0].path, () => {});
         if (req.files.gallery) {
-          req.files.gallery.forEach(f => deleteLocalFile(`/uploads/${f.filename}`));
+          req.files.gallery.forEach(f => fs.unlink(f.path, () => {}));
         }
       }
       next(err);
@@ -176,15 +194,17 @@ module.exports = {
         }
       }
 
-      // Handle avatar file
+      // Handle avatar file (Base64)
       if (req.files && req.files.avatar && req.files.avatar[0]) {
-        // Delete old avatar
-        if (existingPlayer.avatarUrl) {
+        const file = req.files.avatar[0];
+        // Delete old local avatar if it was stored on disk
+        if (existingPlayer.avatarUrl && existingPlayer.avatarUrl.startsWith('/uploads/')) {
           deleteLocalFile(existingPlayer.avatarUrl);
         }
-        updates.avatarUrl = `/uploads/${req.files.avatar[0].filename}`;
+        updates.avatarUrl = fileToBase64(file);
+        fs.unlinkSync(file.path);
       } else if (req.body.deleteAvatar === 'true') {
-        if (existingPlayer.avatarUrl) {
+        if (existingPlayer.avatarUrl && existingPlayer.avatarUrl.startsWith('/uploads/')) {
           deleteLocalFile(existingPlayer.avatarUrl);
         }
         updates.avatarUrl = '';
@@ -197,26 +217,29 @@ module.exports = {
       if (req.body.galleryList) {
         try {
           const clientGallery = typeof req.body.galleryList === 'string' ? JSON.parse(req.body.galleryList) : req.body.galleryList;
-          // Find deleted items to clean up storage
+          // Find deleted items to clean up local storage (if any were local files)
           const deletedFiles = finalGallery.filter(file => !clientGallery.includes(file));
-          deletedFiles.forEach(file => deleteLocalFile(file));
+          deletedFiles.forEach(file => {
+            if (file.startsWith('/uploads/')) deleteLocalFile(file);
+          });
           finalGallery = clientGallery;
         } catch (e) {
           // ignore parsing error
         }
       }
 
-      // Append new gallery uploads
+      // Append new gallery uploads (Base64)
       if (req.files && req.files.gallery) {
         req.files.gallery.forEach(file => {
-          finalGallery.push(`/uploads/${file.filename}`);
+          const base64Str = fileToBase64(file);
+          if (base64Str) finalGallery.push(base64Str);
+          fs.unlinkSync(file.path);
         });
       }
       updates.gallery = finalGallery;
 
-      // Handle video updates
+      // Handle video updates (local/external)
       if (req.files && req.files.video && req.files.video[0]) {
-        // Delete old video if local
         if (existingPlayer.promoVideo && existingPlayer.promoVideo.type === 'local') {
           deleteLocalFile(existingPlayer.promoVideo.url);
         }
@@ -225,7 +248,6 @@ module.exports = {
           url: `/uploads/${req.files.video[0].filename}`
         };
       } else if (req.body.promoVideoUrl !== undefined) {
-        // If updating external link, delete old local video if existed
         if (existingPlayer.promoVideo && existingPlayer.promoVideo.type === 'local' && req.body.promoVideoUrl !== existingPlayer.promoVideo.url) {
           deleteLocalFile(existingPlayer.promoVideo.url);
         }
@@ -244,10 +266,10 @@ module.exports = {
       res.json(updatedPlayer);
     } catch (err) {
       if (req.files) {
-        if (req.files.avatar && req.files.avatar[0]) deleteLocalFile(`/uploads/${req.files.avatar[0].filename}`);
-        if (req.files.video && req.files.video[0]) deleteLocalFile(`/uploads/${req.files.video[0].filename}`);
+        if (req.files.avatar && req.files.avatar[0]) fs.unlink(req.files.avatar[0].path, () => {});
+        if (req.files.video && req.files.video[0]) fs.unlink(req.files.video[0].path, () => {});
         if (req.files.gallery) {
-          req.files.gallery.forEach(f => deleteLocalFile(`/uploads/${f.filename}`));
+          req.files.gallery.forEach(f => fs.unlink(f.path, () => {}));
         }
       }
       next(err);
@@ -262,11 +284,13 @@ module.exports = {
         return res.status(404).json({ message: 'Player not found' });
       }
 
-      // Delete files associated with the player
-      if (player.avatarUrl) deleteLocalFile(player.avatarUrl);
+      // Delete local files associated with the player (if any)
+      if (player.avatarUrl && player.avatarUrl.startsWith('/uploads/')) deleteLocalFile(player.avatarUrl);
       if (player.promoVideo && player.promoVideo.type === 'local') deleteLocalFile(player.promoVideo.url);
       if (player.gallery) {
-        player.gallery.forEach(file => deleteLocalFile(file));
+        player.gallery.forEach(file => {
+          if (file.startsWith('/uploads/')) deleteLocalFile(file);
+        });
       }
 
       await playerService.delete(id);

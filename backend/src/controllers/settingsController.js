@@ -2,6 +2,19 @@ const fs = require('fs');
 const path = require('path');
 const settingsService = require('../services/settingsService');
 
+// Helper to convert uploaded files to Base64 strings
+function fileToBase64(file) {
+  if (!file) return '';
+  try {
+    const fileData = fs.readFileSync(file.path);
+    const base64String = fileData.toString('base64');
+    return `data:${file.mimetype};base64,${base64String}`;
+  } catch (err) {
+    console.error("Error converting file to Base64:", err);
+    return '';
+  }
+}
+
 function deleteLocalFile(fileUrl) {
   if (!fileUrl || !fileUrl.startsWith('/uploads/')) return;
   const filename = fileUrl.replace('/uploads/', '');
@@ -39,31 +52,43 @@ module.exports = {
         }
       }
 
-      // Handle logo upload
+      // Handle logo upload (Base64)
       if (req.files && req.files.logo && req.files.logo[0]) {
-        if (existingSettings.logoUrl) {
+        const file = req.files.logo[0];
+        if (existingSettings.logoUrl && existingSettings.logoUrl.startsWith('/uploads/')) {
           deleteLocalFile(existingSettings.logoUrl);
         }
-        updates.logoUrl = `/uploads/${req.files.logo[0].filename}`;
+        updates.logoUrl = fileToBase64(file);
+        fs.unlinkSync(file.path);
       } else if (req.body.deleteLogo === 'true') {
-        if (existingSettings.logoUrl) deleteLocalFile(existingSettings.logoUrl);
+        if (existingSettings.logoUrl && existingSettings.logoUrl.startsWith('/uploads/')) {
+          deleteLocalFile(existingSettings.logoUrl);
+        }
         updates.logoUrl = '';
       }
 
-      // Handle banner upload
+      // Handle banner upload (Base64)
       if (req.files && req.files.banner && req.files.banner[0]) {
-        if (existingSettings.bannerUrl) {
+        const file = req.files.banner[0];
+        if (existingSettings.bannerUrl && existingSettings.bannerUrl.startsWith('/uploads/')) {
           deleteLocalFile(existingSettings.bannerUrl);
         }
-        updates.bannerUrl = `/uploads/${req.files.banner[0].filename}`;
+        updates.bannerUrl = fileToBase64(file);
+        fs.unlinkSync(file.path);
       } else if (req.body.deleteBanner === 'true') {
-        if (existingSettings.bannerUrl) deleteLocalFile(existingSettings.bannerUrl);
+        if (existingSettings.bannerUrl && existingSettings.bannerUrl.startsWith('/uploads/')) {
+          deleteLocalFile(existingSettings.bannerUrl);
+        }
         updates.bannerUrl = '';
       }
 
       const updated = await settingsService.updateSettings(updates);
       res.json(updated);
     } catch (err) {
+      if (req.files) {
+        if (req.files.logo && req.files.logo[0]) fs.unlink(req.files.logo[0].path, () => {});
+        if (req.files.banner && req.files.banner[0]) fs.unlink(req.files.banner[0].path, () => {});
+      }
       next(err);
     }
   }
