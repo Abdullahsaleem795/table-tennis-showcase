@@ -5,8 +5,12 @@ const fs = require('fs');
 const UPLOADS_DIR = path.join(__dirname, '..', '..', 'uploads');
 
 // Make sure the uploads folder exists
-if (!fs.existsSync(UPLOADS_DIR)) {
-  fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+try {
+  if (!fs.existsSync(UPLOADS_DIR)) {
+    fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+  }
+} catch (err) {
+  console.warn("WARNING: Could not create uploads directory (expected on Vercel).");
 }
 
 // Storage configuration
