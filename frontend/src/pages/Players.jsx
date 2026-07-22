@@ -57,11 +57,11 @@ const Players = () => {
       <div className="section-padding container-width">
         {/* Page Header */}
         <div style={{ textAlign: 'center', marginBottom: '48px' }}>
-          <span style={{ color: '#2563eb', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', fontSize: '0.9rem' }}>Showcase Roster</span>
+          <span style={{ color: 'var(--color-primary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', fontSize: '0.9rem' }}>Showcase Roster</span>
           <h1 style={{ fontSize: '2.5rem', marginTop: '4px', textTransform: 'uppercase' }} className="text-gradient">
             Meet Our Champions
           </h1>
-          <p style={{ color: '#94a3b8', maxWidth: '600px', margin: '12px auto 0', fontSize: '0.95rem' }}>
+          <p style={{ color: 'var(--color-on-surface-variant)', maxWidth: '600px', margin: '12px auto 0', fontSize: '0.95rem' }}>
             Browse and search our roster of top-tier table tennis competitors. Filter by style or search directly by rank.
           </p>
         </div>
@@ -85,7 +85,7 @@ const Players = () => {
               className="form-input"
               style={{ paddingLeft: '40px', borderRadius: '10px' }}
             />
-            <FaSearch style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#64748b' }} />
+            <FaSearch style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-on-surface-variant)' }} />
           </div>
 
           {/* Style Filter Tabs */}
@@ -103,15 +103,15 @@ const Players = () => {
                 key={style}
                 onClick={() => setSelectedStyle(style)}
                 style={{
-                  background: selectedStyle === style ? 'linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%)' : 'none',
+                  background: selectedStyle === style ? 'linear-gradient(135deg, var(--color-tertiary) 0%, var(--color-primary) 100%)' : 'none',
                   border: 'none',
-                  color: selectedStyle === style ? '#ffffff' : '#94a3b8',
+                  color: selectedStyle === style ? 'var(--color-on-surface)' : 'var(--color-on-surface-variant)',
                   padding: '8px 16px',
                   borderRadius: '8px',
                   cursor: 'pointer',
                   fontWeight: 600,
                   fontSize: '0.85rem',
-                  fontFamily: "'Outfit', sans-serif",
+                  fontFamily: "var(--font-family-heading)",
                   transition: 'all 0.2s'
                 }}
               >
@@ -134,7 +134,7 @@ const Players = () => {
               <PlayerCard key={player._id || player.id} player={player} />
             ))
           ) : (
-            <div className="glass-panel" style={{
+            <div className="m3-card" style={{
               gridColumn: '1/-1',
               padding: '60px 24px',
               textAlign: 'center',
@@ -146,7 +146,7 @@ const Players = () => {
             }}>
               <FaTableTennis style={{ fontSize: '48px', color: '#475569' }} />
               <h3 style={{ fontSize: '1.25rem' }}>No Players Found</h3>
-              <p style={{ color: '#64748b', fontSize: '0.9rem', maxWidth: '400px' }}>
+              <p style={{ color: 'var(--color-on-surface-variant)', fontSize: '0.9rem', maxWidth: '400px' }}>
                 We couldn't find any players matching "{searchQuery}" with the "{selectedStyle}" style. Try adjusting your filters.
               </p>
             </div>

@@ -2,7 +2,7 @@ import React from 'react';
 
 export const CardSkeleton = () => {
   return (
-    <div className="glass-panel" style={{ height: '360px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+    <div className="m3-card" style={{ height: '360px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
       <div className="skeleton" style={{ width: '100%', height: '200px', borderRadius: '12px' }} />
       <div className="skeleton" style={{ width: '70%', height: '24px' }} />
       <div className="skeleton" style={{ width: '40%', height: '16px' }} />
@@ -28,7 +28,7 @@ export const ProfileSkeleton = () => {
 
 export const TableSkeleton = () => {
   return (
-    <div className="glass-panel" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+    <div className="m3-card" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
       <div className="skeleton" style={{ width: '100%', height: '40px' }} />
       {[1, 2, 3, 4, 5].map((i) => (
         <div key={i} className="skeleton" style={{ width: '100%', height: '60px' }} />

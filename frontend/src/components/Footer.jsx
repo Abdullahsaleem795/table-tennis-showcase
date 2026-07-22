@@ -38,36 +38,36 @@ const Footer = () => {
       }}>
         {/* About Club */}
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
-            <FaTableTennis style={{ fontSize: '24px', color: '#2563eb' }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
+            <img src="/tt-logo.png" alt="TT Logo" style={{ height: '36px', width: '36px', objectFit: 'contain', filter: 'drop-shadow(0 0 8px rgba(212, 175, 55, 0.6))' }} />
             <h3 style={{
-              fontFamily: "'Outfit', sans-serif",
+              fontFamily: "var(--font-family-heading)",
               fontSize: '1.2rem',
               fontWeight: 800,
               textTransform: 'uppercase',
               letterSpacing: '-0.01em',
-              color: '#ffffff'
+              color: 'var(--color-on-surface)'
             }}>
               {settings?.websiteName || "Championship TT Club"}
             </h3>
           </div>
-          <p style={{ color: '#94a3b8', fontSize: '0.9rem', lineHeight: '1.6' }}>
+          <p style={{ color: 'var(--color-on-surface-variant)', fontSize: '0.9rem', lineHeight: '1.6' }}>
             {settings?.aboutContent?.substring(0, 160) || "Welcome to our premier table tennis showcase."}...
           </p>
           {/* Social icons */}
           <div style={{ display: 'flex', gap: '16px', marginTop: '20px' }}>
             {facebook && (
-              <a href={facebook} target="_blank" rel="noopener noreferrer" style={{ color: '#94a3b8', fontSize: '20px', transition: 'color 0.2s' }} onMouseEnter={(e)=>e.target.style.color='#2563eb'} onMouseLeave={(e)=>e.target.style.color='#94a3b8'}>
+              <a href={facebook} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-on-surface-variant)', fontSize: '20px', transition: 'color 0.2s' }} onMouseEnter={(e)=>e.target.style.color='var(--color-primary)'} onMouseLeave={(e)=>e.target.style.color='var(--color-on-surface-variant)'}>
                 <FaFacebook />
               </a>
             )}
             {instagram && (
-              <a href={instagram} target="_blank" rel="noopener noreferrer" style={{ color: '#94a3b8', fontSize: '20px', transition: 'color 0.2s' }} onMouseEnter={(e)=>e.target.style.color='#ea4c89'} onMouseLeave={(e)=>e.target.style.color='#94a3b8'}>
+              <a href={instagram} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-on-surface-variant)', fontSize: '20px', transition: 'color 0.2s' }} onMouseEnter={(e)=>e.target.style.color='#ea4c89'} onMouseLeave={(e)=>e.target.style.color='var(--color-on-surface-variant)'}>
                 <FaInstagram />
               </a>
             )}
             {youtube && (
-              <a href={youtube} target="_blank" rel="noopener noreferrer" style={{ color: '#94a3b8', fontSize: '20px', transition: 'color 0.2s' }} onMouseEnter={(e)=>e.target.style.color='#ef4444'} onMouseLeave={(e)=>e.target.style.color='#94a3b8'}>
+              <a href={youtube} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-on-surface-variant)', fontSize: '20px', transition: 'color 0.2s' }} onMouseEnter={(e)=>e.target.style.color='var(--color-error)'} onMouseLeave={(e)=>e.target.style.color='var(--color-on-surface-variant)'}>
                 <FaYoutube />
               </a>
             )}
@@ -77,9 +77,9 @@ const Footer = () => {
         {/* Quick Links */}
         <div>
           <h4 style={{
-            fontFamily: "'Outfit', sans-serif",
+            fontFamily: "var(--font-family-heading)",
             fontSize: '1rem',
-            color: '#ffffff',
+            color: 'var(--color-on-surface)',
             marginBottom: '20px',
             textTransform: 'uppercase',
             letterSpacing: '0.05em'
@@ -88,19 +88,19 @@ const Footer = () => {
           </h4>
           <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '0.9rem' }}>
             <li>
-              <Link to="/" style={{ color: '#94a3b8', transition: 'color 0.2s' }} onMouseEnter={(e)=>e.target.style.color='#ffffff'} onMouseLeave={(e)=>e.target.style.color='#94a3b8'}>Home</Link>
+              <Link to="/" style={{ color: 'var(--color-on-surface-variant)', transition: 'color 0.2s' }} onMouseEnter={(e)=>e.target.style.color='var(--color-on-surface)'} onMouseLeave={(e)=>e.target.style.color='var(--color-on-surface-variant)'}>Home</Link>
             </li>
             <li>
-              <Link to="/players" style={{ color: '#94a3b8', transition: 'color 0.2s' }} onMouseEnter={(e)=>e.target.style.color='#ffffff'} onMouseLeave={(e)=>e.target.style.color='#94a3b8'}>Players Showcase</Link>
+              <Link to="/players" style={{ color: 'var(--color-on-surface-variant)', transition: 'color 0.2s' }} onMouseEnter={(e)=>e.target.style.color='var(--color-on-surface)'} onMouseLeave={(e)=>e.target.style.color='var(--color-on-surface-variant)'}>Players Showcase</Link>
             </li>
             <li>
-              <Link to="/rankings" style={{ color: '#94a3b8', transition: 'color 0.2s' }} onMouseEnter={(e)=>e.target.style.color='#ffffff'} onMouseLeave={(e)=>e.target.style.color='#94a3b8'}>Player Rankings</Link>
+              <Link to="/rankings" style={{ color: 'var(--color-on-surface-variant)', transition: 'color 0.2s' }} onMouseEnter={(e)=>e.target.style.color='var(--color-on-surface)'} onMouseLeave={(e)=>e.target.style.color='var(--color-on-surface-variant)'}>Player Rankings</Link>
             </li>
             <li>
-              <Link to="/about" style={{ color: '#94a3b8', transition: 'color 0.2s' }} onMouseEnter={(e)=>e.target.style.color='#ffffff'} onMouseLeave={(e)=>e.target.style.color='#94a3b8'}>About Club</Link>
+              <Link to="/about" style={{ color: 'var(--color-on-surface-variant)', transition: 'color 0.2s' }} onMouseEnter={(e)=>e.target.style.color='var(--color-on-surface)'} onMouseLeave={(e)=>e.target.style.color='var(--color-on-surface-variant)'}>About Club</Link>
             </li>
             <li>
-              <Link to="/contact" style={{ color: '#94a3b8', transition: 'color 0.2s' }} onMouseEnter={(e)=>e.target.style.color='#ffffff'} onMouseLeave={(e)=>e.target.style.color='#94a3b8'}>Contact Form</Link>
+              <Link to="/contact" style={{ color: 'var(--color-on-surface-variant)', transition: 'color 0.2s' }} onMouseEnter={(e)=>e.target.style.color='var(--color-on-surface)'} onMouseLeave={(e)=>e.target.style.color='var(--color-on-surface-variant)'}>Contact Form</Link>
             </li>
           </ul>
         </div>
@@ -108,27 +108,27 @@ const Footer = () => {
         {/* Contact Info */}
         <div>
           <h4 style={{
-            fontFamily: "'Outfit', sans-serif",
+            fontFamily: "var(--font-family-heading)",
             fontSize: '1rem',
-            color: '#ffffff',
+            color: 'var(--color-on-surface)',
             marginBottom: '20px',
             textTransform: 'uppercase',
             letterSpacing: '0.05em'
           }}>
             Get in touch
           </h4>
-          <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '16px', fontSize: '0.9rem', color: '#94a3b8' }}>
+          <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '16px', fontSize: '0.9rem', color: 'var(--color-on-surface-variant)' }}>
             <li style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-              <FaMapMarkerAlt style={{ color: '#2563eb', marginTop: '3px', flexShrink: 0 }} />
+              <FaMapMarkerAlt style={{ color: 'var(--color-primary)', marginTop: '3px', flexShrink: 0 }} />
               <span>{location}</span>
             </li>
             <li style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <FaPhone style={{ color: '#2563eb', flexShrink: 0 }} />
+              <FaPhone style={{ color: 'var(--color-primary)', flexShrink: 0 }} />
               <span>{contactPhone}</span>
             </li>
             <li style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <FaEnvelope style={{ color: '#2563eb', flexShrink: 0 }} />
-              <a href={`mailto:${contactEmail}`} style={{ color: '#94a3b8', transition: 'color 0.2s' }} onMouseEnter={(e)=>e.target.style.color='#ffffff'} onMouseLeave={(e)=>e.target.style.color='#94a3b8'}>{contactEmail}</a>
+              <FaEnvelope style={{ color: 'var(--color-primary)', flexShrink: 0 }} />
+              <a href={`mailto:${contactEmail}`} style={{ color: 'var(--color-on-surface-variant)', transition: 'color 0.2s' }} onMouseEnter={(e)=>e.target.style.color='var(--color-on-surface)'} onMouseLeave={(e)=>e.target.style.color='var(--color-on-surface-variant)'}>{contactEmail}</a>
             </li>
           </ul>
         </div>
@@ -146,11 +146,11 @@ const Footer = () => {
         alignItems: 'center',
         gap: '20px',
         fontSize: '0.85rem',
-        color: '#64748b'
+        color: 'var(--color-on-surface-variant)'
       }}>
         <span>{footerText}</span>
         <div style={{ display: 'flex', gap: '24px' }}>
-          <Link to="/admin/login" style={{ color: '#64748b', transition: 'color 0.2s' }} onMouseEnter={(e)=>e.target.style.color='#ffffff'} onMouseLeave={(e)=>e.target.style.color='#64748b'}>Admin Login</Link>
+          <Link to="/admin/login" style={{ color: 'var(--color-on-surface-variant)', transition: 'color 0.2s' }} onMouseEnter={(e)=>e.target.style.color='var(--color-on-surface)'} onMouseLeave={(e)=>e.target.style.color='var(--color-on-surface-variant)'}>Admin Login</Link>
           <span style={{ cursor: 'pointer' }} onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>Back to Top ↑</span>
         </div>
       </div>

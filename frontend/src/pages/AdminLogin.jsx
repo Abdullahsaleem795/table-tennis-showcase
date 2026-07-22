@@ -49,7 +49,7 @@ const AdminLogin = () => {
     }}>
       <div className="bg-glow bg-glow-1"></div>
 
-      <div className="glass-panel" style={{
+      <div className="m3-card" style={{
         width: '100%',
         maxWidth: '400px',
         padding: '40px 32px',
@@ -67,14 +67,14 @@ const AdminLogin = () => {
             borderRadius: '50%',
             backgroundColor: 'rgba(37, 99, 235, 0.1)',
             border: '1px solid rgba(37, 99, 235, 0.3)',
-            color: '#2563eb',
+            color: 'var(--color-primary)',
             fontSize: '24px',
             marginBottom: '16px'
           }}>
             <FaUserShield />
           </div>
-          <h2 style={{ fontSize: '1.75rem', color: '#ffffff', fontFamily: "'Outfit', sans-serif" }}>Admin Login</h2>
-          <p style={{ color: '#94a3b8', fontSize: '0.85rem', marginTop: '6px' }}>
+          <h2 style={{ fontSize: '1.75rem', color: 'var(--color-on-surface)', fontFamily: "var(--font-family-heading)" }}>Admin Login</h2>
+          <p style={{ color: 'var(--color-on-surface-variant)', fontSize: '0.85rem', marginTop: '6px' }}>
             Authorized access only. Enter administrative credentials.
           </p>
         </div>
@@ -94,7 +94,7 @@ const AdminLogin = () => {
                 style={{ paddingLeft: '40px' }}
                 required
               />
-              <FaUser style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#64748b', fontSize: '14px' }} />
+              <FaUser style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-on-surface-variant)', fontSize: '14px' }} />
             </div>
           </div>
 
@@ -111,7 +111,7 @@ const AdminLogin = () => {
                 style={{ paddingLeft: '40px' }}
                 required
               />
-              <FaLock style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#64748b', fontSize: '14px' }} />
+              <FaLock style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-on-surface-variant)', fontSize: '14px' }} />
             </div>
           </div>
 

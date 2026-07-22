@@ -5,14 +5,14 @@ import api from '../services/api';
 const VideoPlayer = ({ video }) => {
   if (!video || !video.url) {
     return (
-      <div className="glass-panel" style={{
+      <div className="m3-card" style={{
         height: '300px',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
         gap: '12px',
-        color: '#64748b',
+        color: 'var(--color-on-surface-variant)',
         border: '1px dashed rgba(255,255,255,0.1)'
       }}>
         <FaVideoSlash style={{ fontSize: '48px' }} />

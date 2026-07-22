@@ -1,0 +1,2 @@
+/api/*    https://citizens-collectible-examines-former.trycloudflare.com/api/:splat    200!
+/*        /index.html                                                                  200

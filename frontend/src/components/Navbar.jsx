@@ -29,15 +29,13 @@ const Navbar = () => {
   const logoUrl = settings?.logoUrl ? (settings.logoUrl.startsWith('http') ? settings.logoUrl : `${api.defaults.baseURL || ''}${settings.logoUrl}`) : '';
 
   return (
-    <nav className="glass-panel glow-border" style={{
+    <nav style={{
       position: 'sticky',
       top: 0,
       zIndex: 1000,
-      borderRadius: '0 0 16px 16px',
-      margin: '0 16px',
-      borderTop: 'none',
-      borderLeft: 'none',
-      borderRight: 'none'
+      background: 'var(--color-surface)',
+      borderBottom: '1px solid var(--color-outline-variant)',
+      boxShadow: 'var(--elevation-1)'
     }}>
       <div style={{
         maxWidth: '1200px',
@@ -47,54 +45,44 @@ const Navbar = () => {
         alignItems: 'center',
         justifyContent: 'space-between'
       }}>
-        {/* Brand / Logo */}
-        <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '10px' }} onClick={closeMenu}>
-          {logoUrl ? (
-            <img src={logoUrl} alt="Logo" style={{ height: '40px', objectFit: 'contain' }} />
-          ) : (
-            <FaTableTennis style={{ fontSize: '28px', color: '#2563eb' }} />
-          )}
+        {/* Brand */}
+        <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '12px' }} onClick={closeMenu}>
           <span style={{
-            fontFamily: "'Outfit', sans-serif",
-            fontSize: '1.25rem',
-            fontWeight: 800,
-            letterSpacing: '-0.02em',
-            textTransform: 'uppercase',
-            background: 'linear-gradient(135deg, #ffffff 40%, #0ea5e9 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent'
+            fontFamily: "var(--font-family-heading)",
+            fontSize: '1.2rem',
+            fontWeight: 700,
+            color: 'var(--color-primary)'
           }}>
             {siteName}
           </span>
         </Link>
 
-        {/* Desktop Links */}
-        <div className="desktop-menu" style={{ display: 'flex', alignItems: 'center', gap: '32px' }}>
+        {/* Links */}
+        <div className="desktop-menu" style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
           <style>{`
             .nav-link-custom {
-              font-family: 'Outfit', sans-serif;
+              font-family: var(--font-family-body);
               font-weight: 500;
-              font-size: 0.95rem;
-              color: #94a3b8;
+              font-size: var(--type-label);
+              color: var(--color-on-surface-variant);
               position: relative;
               padding: 6px 0;
-              transition: color 0.3s;
+              transition: var(--motion-standard);
             }
             .nav-link-custom:hover {
-              color: #ffffff;
+              color: var(--color-on-surface);
             }
             .nav-link-custom.active {
-              color: #3b82f6;
+              color: var(--color-primary);
             }
             .nav-link-custom.active::after {
               content: '';
               position: absolute;
-              bottom: 0;
+              bottom: -2px;
               left: 0;
               width: 100%;
               height: 2px;
-              background-color: #2563eb;
-              border-radius: 2px;
+              background-color: var(--color-primary);
             }
             @media (max-width: 820px) {
               .desktop-menu { display: none !important; }
@@ -105,20 +93,21 @@ const Navbar = () => {
           <NavLink to="/" className="nav-link-custom">Home</NavLink>
           <NavLink to="/players" className="nav-link-custom">Players</NavLink>
           <NavLink to="/rankings" className="nav-link-custom">Rankings</NavLink>
+          <NavLink to="/tournament" className="nav-link-custom">Tournament</NavLink>
           <NavLink to="/about" className="nav-link-custom">About</NavLink>
           <NavLink to="/contact" className="nav-link-custom">Contact</NavLink>
           
           {isAuthenticated ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', borderLeft: '1px solid rgba(255,255,255,0.1)', paddingLeft: '16px' }}>
-              <Link to="/admin" className="btn btn-secondary" style={{ padding: '8px 16px', fontSize: '0.85rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', borderLeft: '1px solid rgba(255,255,255,0.08)', paddingLeft: '16px' }}>
+              <Link to="/admin" className="btn btn-secondary" style={{ padding: '6px 14px', fontSize: '0.8rem' }}>
                 <FaUserShield /> Dashboard
               </Link>
-              <button onClick={handleLogout} className="btn btn-danger" style={{ padding: '8px 16px', fontSize: '0.85rem' }}>
+              <button onClick={handleLogout} className="btn btn-danger" style={{ padding: '6px 14px', fontSize: '0.8rem' }}>
                 <FaSignOutAlt /> Logout
               </button>
             </div>
           ) : (
-            <Link to="/admin/login" className="btn btn-primary" style={{ padding: '8px 16px', fontSize: '0.85rem' }}>
+            <Link to="/admin/login" className="btn btn-primary" style={{ padding: '6px 14px', fontSize: '0.8rem' }}>
               Admin Portal
             </Link>
           )}
@@ -132,8 +121,8 @@ const Navbar = () => {
             display: 'none',
             background: 'none',
             border: 'none',
-            color: '#f8fafc',
-            fontSize: '24px',
+            color: 'var(--color-on-surface)',
+            fontSize: '22px',
             cursor: 'pointer'
           }}
         >
@@ -143,28 +132,30 @@ const Navbar = () => {
 
       {/* Mobile Drawer */}
       {isOpen && (
-        <div style={{
+        <div className="m3-card" style={{
           position: 'absolute',
           top: '100%',
           left: 0,
           width: '100%',
-          backgroundColor: 'rgba(6, 9, 19, 0.95)',
-          backdropFilter: 'blur(20px)',
-          borderBottom: '1px solid rgba(255,255,255,0.1)',
-          padding: '24px',
+          borderTop: 'none',
+          borderLeft: 'none',
+          borderRight: 'none',
+          borderRadius: '0 0 var(--radius-md) var(--radius-md)',
+          padding: '20px',
           display: 'flex',
           flexDirection: 'column',
-          gap: '20px',
+          gap: '16px',
           zIndex: 999
         }}>
           <NavLink to="/" className="nav-link-custom" onClick={closeMenu}>Home</NavLink>
           <NavLink to="/players" className="nav-link-custom" onClick={closeMenu}>Players</NavLink>
           <NavLink to="/rankings" className="nav-link-custom" onClick={closeMenu}>Rankings</NavLink>
+          <NavLink to="/tournament" className="nav-link-custom" onClick={closeMenu}>Tournament</NavLink>
           <NavLink to="/about" className="nav-link-custom" onClick={closeMenu}>About</NavLink>
           <NavLink to="/contact" className="nav-link-custom" onClick={closeMenu}>Contact</NavLink>
           
           {isAuthenticated ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '16px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '14px' }}>
               <Link to="/admin" className="btn btn-secondary" onClick={closeMenu} style={{ width: '100%' }}>
                 <FaUserShield /> Admin Dashboard
               </Link>

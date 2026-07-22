@@ -7,7 +7,8 @@ const upload = require('../middleware/upload');
 const playerUploads = upload.fields([
   { name: 'avatar', maxCount: 1 },
   { name: 'gallery', maxCount: 10 },
-  { name: 'video', maxCount: 1 }
+  { name: 'video', maxCount: 1 },
+  { name: 'promoVideoFile', maxCount: 1 }
 ]);
 
 router.get('/', playerController.getAllPlayers);

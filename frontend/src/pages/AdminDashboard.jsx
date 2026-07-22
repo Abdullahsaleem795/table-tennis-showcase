@@ -5,20 +5,31 @@ import api from '../services/api';
 import Toast from '../components/Toast';
 import {
   FaUserShield, FaUsers, FaImage, FaVideo, FaCog, FaLock, FaSignOutAlt,
-  FaPlus, FaEdit, FaTrash, FaCheck, FaTimes, FaUpload, FaGlobe, FaTrophy, FaHandPaper, FaKey
+  FaPlus, FaEdit, FaTrash, FaCheck, FaTimes, FaUpload, FaGlobe, FaTrophy, FaHandPaper, FaKey, FaRandom, FaCheckCircle, FaClipboardList, FaShareAlt
 } from 'react-icons/fa';
 
 const AdminDashboard = () => {
   const { isAuthenticated, logout, changePassword, loading: authLoading } = useContext(AuthContext);
   const navigate = useNavigate();
 
-  // Tab State: 'overview', 'players', 'settings', 'account'
+  // Tab State: 'overview', 'players', 'tournament', 'voting'
   const [activeTab, setActiveTab] = useState('overview');
 
   // Core Data States
   const [players, setPlayers] = useState([]);
   const [stats, setStats] = useState({ totalPlayers: 0, totalPhotos: 0, totalVideos: 0 });
   const [settings, setSettings] = useState(null);
+  const [tournament, setTournament] = useState(null);
+  
+  // Poll State
+  const [pollActive, setPollActive] = useState(false);
+  const [pollEndsAt, setPollEndsAt] = useState('');
+  const [pollPublished, setPollPublished] = useState(false);
+  
+  // Site Settings State
+  const [siteContactEmail, setSiteContactEmail] = useState('');
+  const [siteContactPhone, setSiteContactPhone] = useState('');
+  const [siteLocation, setSiteLocation] = useState('');
   
   // UI states
   const [loading, setLoading] = useState(true);
@@ -26,8 +37,8 @@ const AdminDashboard = () => {
 
   // Player Form Modal State
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [editingPlayerId, setEditingPlayerId] = useState(null); // null means adding a new player
-  const [formTab, setFormTab] = useState('basic'); // 'basic', 'equipment', 'media'
+  const [editingPlayerId, setEditingPlayerId] = useState(null);
+  const [formTab, setFormTab] = useState('basic');
 
   // Player Form Fields State
   const [name, setName] = useState('');
@@ -61,34 +72,12 @@ const AdminDashboard = () => {
 
   const [videoFile, setVideoFile] = useState(null);
   const [videoUrlInput, setVideoUrlInput] = useState('');
-  const [videoType, setVideoType] = useState('external'); // 'local' or 'external'
+  const [videoType, setVideoType] = useState('external');
   const [deleteVideo, setDeleteVideo] = useState(false);
 
   const [galleryFiles, setGalleryFiles] = useState([]);
   const [existingGallery, setExistingGallery] = useState([]);
   
-  // Settings Form State
-  const [websiteName, setWebsiteName] = useState('');
-  const [logoFile, setLogoFile] = useState(null);
-  const [logoPreview, setLogoPreview] = useState('');
-  const [deleteLogo, setDeleteLogo] = useState(false);
-  const [bannerFile, setBannerFile] = useState(null);
-  const [bannerPreview, setBannerPreview] = useState('');
-  const [deleteBanner, setDeleteBanner] = useState(false);
-  const [aboutContent, setAboutContent] = useState('');
-  const [contactEmail, setContactEmail] = useState('');
-  const [contactPhone, setContactPhone] = useState('');
-  const [locationVal, setLocationVal] = useState('');
-  const [fbLink, setFbLink] = useState('');
-  const [igLink, setIgLink] = useState('');
-  const [ytLink, setYtLink] = useState('');
-  const [footerText, setFooterText] = useState('');
-
-  // Password Change state
-  const [oldPassword, setOldPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-
   // Form Submitting state
   const [saving, setSaving] = useState(false);
 
@@ -98,145 +87,279 @@ const AdminDashboard = () => {
     }
   }, [isAuthenticated, authLoading, navigate]);
 
-  const loadData = async () => {
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchDashboardData();
+    }
+  }, [isAuthenticated]);
+
+  const fetchDashboardData = async () => {
     setLoading(true);
     try {
-      const [playersRes, statsRes, settingsRes] = await Promise.all([
+      const [playersRes, settingsRes, tournamentRes, pollRes] = await Promise.all([
         api.get('/players'),
-        api.get('/players/stats'),
-        api.get('/settings')
+        api.get('/settings'),
+        api.get('/tournament'),
+        api.get('/poll')
       ]);
-      setPlayers(playersRes.data);
-      setStats(statsRes.data);
+      const fetchedPlayers = playersRes.data.players ? playersRes.data.players : playersRes.data;
+      setPlayers(Array.isArray(fetchedPlayers) ? fetchedPlayers : []);
+      
+      if (playersRes.data.stats) {
+        setStats(playersRes.data.stats);
+      } else {
+        setStats({ totalPlayers: Array.isArray(fetchedPlayers) ? fetchedPlayers.length : 0, totalPhotos: 0, totalVideos: 0 });
+      }
+
       setSettings(settingsRes.data);
-      populateSettingsForm(settingsRes.data);
+      setSiteContactEmail(settingsRes.data?.contactEmail || '');
+      setSiteContactPhone(settingsRes.data?.contactPhone || '');
+      setSiteLocation(settingsRes.data?.location || '');
+      
+      if (tournamentRes.data) {
+        setTournament(tournamentRes.data);
+      }
+      
+      if (pollRes.data) {
+        setPollActive(!!pollRes.data.active);
+        setPollPublished(!!pollRes.data.published);
+        if (pollRes.data.endsAt) {
+          // Format ISO to datetime-local format: YYYY-MM-DDTHH:MM
+          const d = new Date(pollRes.data.endsAt);
+          const localISO = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+          setPollEndsAt(localISO);
+        } else {
+          setPollEndsAt('');
+        }
+      }
+
+      let photosCount = 0;
+      let videosCount = 0;
+      fetchedPlayers.forEach(p => {
+        if (p.avatarUrl) photosCount++;
+        if (p.gallery && Array.isArray(p.gallery)) photosCount += p.gallery.length;
+        if (p.promoVideo && p.promoVideo.url) videosCount++;
+      });
+
+      setStats({
+        totalPlayers: fetchedPlayers.length,
+        totalPhotos: photosCount,
+        totalVideos: videosCount
+      });
     } catch (err) {
-      setToast({ message: "Failed to fetch dashboard data.", type: "error" });
+      showToast("Error loading dashboard data", "error");
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    if (isAuthenticated) {
-      loadData();
-    }
-  }, [isAuthenticated]);
-
-  const populateSettingsForm = (data) => {
-    if (!data) return;
-    setWebsiteName(data.websiteName || '');
-    setAboutContent(data.aboutContent || '');
-    setContactEmail(data.contactEmail || '');
-    setContactPhone(data.contactPhone || '');
-    setLocationVal(data.location || '');
-    setFbLink(data.socialLinks?.facebook || '');
-    setIgLink(data.socialLinks?.instagram || '');
-    setYtLink(data.socialLinks?.youtube || '');
-    setFooterText(data.footerText || '');
-    setLogoPreview(data.logoUrl ? (data.logoUrl.startsWith('http') ? data.logoUrl : `${api.defaults.baseURL || ''}${data.logoUrl}`) : '');
-    setBannerPreview(data.bannerUrl ? (data.bannerUrl.startsWith('http') ? data.bannerUrl : `${api.defaults.baseURL || ''}${data.bannerUrl}`) : '');
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type });
   };
 
-  // Open Player form modal
-  const handleOpenPlayerForm = (player = null) => {
-    setFormTab('basic');
-    setAvatarFile(null);
-    setVideoFile(null);
-    setGalleryFiles([]);
-    setDeleteAvatar(false);
-    setDeleteVideo(false);
-
-    if (player) {
-      setEditingPlayerId(player._id || player.id);
-      setName(player.name || '');
-      setRank(player.rank || '');
-      setPlayingStyle(player.playingStyle || 'Attack');
-      setPlayingHand(player.playingHand || 'Right Hand');
-      setBiography(player.biography || '');
-      setCountry(player.country || '');
-      setAchievementsInput(player.achievements ? player.achievements.join('\n') : '');
-      
-      // Equipment
-      setBladeBrand(player.equipment?.blade?.brand || '');
-      setBladeModel(player.equipment?.blade?.model || '');
-      setForehandBrand(player.equipment?.forehandRubber?.brand || '');
-      setForehandModel(player.equipment?.forehandRubber?.model || '');
-      setForehandSponge(player.equipment?.forehandRubber?.spongeThickness || '');
-      setForehandSpeed(player.equipment?.forehandRubber?.speed || 0);
-      setForehandSpin(player.equipment?.forehandRubber?.spin || 0);
-      setBackhandBrand(player.equipment?.backhandRubber?.brand || '');
-      setBackhandModel(player.equipment?.backhandRubber?.model || '');
-      setBackhandSponge(player.equipment?.backhandRubber?.spongeThickness || '');
-      setBackhandSpeed(player.equipment?.backhandRubber?.speed || 0);
-      setBackhandSpin(player.equipment?.backhandRubber?.spin || 0);
-
-      // Media
-      setVideoType(player.promoVideo?.type || 'external');
-      setVideoUrlInput(player.promoVideo?.url || '');
-      setAvatarPreview(player.avatarUrl ? (player.avatarUrl.startsWith('http') ? player.avatarUrl : `${api.defaults.baseURL || ''}${player.avatarUrl}`) : '');
-      setExistingGallery(player.gallery || []);
-    } else {
-      setEditingPlayerId(null);
-      setName('');
-      // Suggest next rank automatically
-      const nextRank = players.length > 0 ? Math.max(...players.map(p => p.rank)) + 1 : 1;
-      setRank(nextRank);
-      setPlayingStyle('Attack');
-      setPlayingHand('Right Hand');
-      setBiography('');
-      setCountry('');
-      setAchievementsInput('');
-      
-      // Equipment
-      setBladeBrand('');
-      setBladeModel('');
-      setForehandBrand('');
-      setForehandModel('');
-      setForehandSponge('');
-      setForehandSpeed(0);
-      setForehandSpin(0);
-      setBackhandBrand('');
-      setBackhandModel('');
-      setBackhandSponge('');
-      setBackhandSpeed(0);
-      setBackhandSpin(0);
-
-      // Media
-      setVideoType('external');
-      setVideoUrlInput('');
-      setAvatarPreview('');
-      setExistingGallery([]);
+  const handleResetPoll = async () => {
+    if (!window.confirm("Are you sure you want to remove the current poll? This will permanently erase all current votes and create a clean slate.")) return;
+    setSaving(true);
+    try {
+      await api.post('/poll/reset');
+      showToast("Poll removed and reset successfully!");
+      fetchDashboardData();
+    } catch (err) {
+      showToast("Error resetting poll", "error");
+    } finally {
+      setSaving(false);
     }
+  };
 
+  const handleUpdatePollSettings = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      const endsAtISO = pollEndsAt ? new Date(pollEndsAt).toISOString() : null;
+      await api.post('/poll/configure', {
+        active: pollActive,
+        endsAt: endsAtISO,
+        published: pollPublished
+      });
+      showToast("Poll configurations updated successfully!");
+      fetchDashboardData();
+    } catch (err) {
+      showToast("Error updating poll settings", "error");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleUpdateSiteSettings = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      await api.post('/settings', {
+        contactEmail: siteContactEmail,
+        contactPhone: siteContactPhone,
+        location: siteLocation
+      });
+      showToast("Site settings updated successfully!");
+      fetchDashboardData();
+    } catch (err) {
+      showToast("Error updating site settings", "error");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCopyInviteTemplate = () => {
+    const link = window.location.origin;
+    const msg = `🏓 Who is your favorite table tennis player? Cast your vote now in our fan favorite poll! \n👉 Vote here: ${link}`;
+    navigator.clipboard.writeText(msg);
+    showToast("Invite template copied to clipboard!");
+  };
+
+  const handleCopyResultsTemplate = () => {
+    const link = window.location.origin;
+    const sortedPlayers = [...players].sort((a,b) => (b.votes || 0) - (a.votes || 0));
+    const winner = sortedPlayers[0];
+    
+    let msg = winner && winner.votes > 0
+      ? `🏆 The results are in! ${winner.name} won the Fan Favorite Poll with ${winner.votes} votes!\n\n`
+      : `🏆 Fan Favorite Poll results are declared!\n\n`;
+      
+    msg += `📊 Final Standings:\n`;
+    sortedPlayers.forEach((p, index) => {
+      msg += `${index === 0 && p.votes > 0 ? '👑 ' : ''}${index + 1}. ${p.name} - ${p.votes || 0} votes\n`;
+    });
+    
+    msg += `\n👉 View results here: ${link}`;
+    
+    navigator.clipboard.writeText(msg);
+    showToast("Full poll results copied to clipboard!");
+  };
+
+  const handleGenerateTournament = async () => {
+    setSaving(true);
+    try {
+      const res = await api.post('/tournament/generate');
+      setTournament(res.data.tournament);
+      showToast("Tournament bracket generated successfully!");
+    } catch (err) {
+      showToast(err.response?.data?.message || "Error generating tournament", "error");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSelectWinner = async (matchId, winnerId) => {
+    setSaving(true);
+    try {
+      const res = await api.post('/tournament/winner', { matchId, winnerId });
+      setTournament(res.data.tournament);
+      showToast("Winner logged & player advanced!");
+    } catch (err) {
+      showToast(err.response?.data?.message || "Error selecting winner", "error");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleResetTournament = async () => {
+    if (!window.confirm("Are you sure you want to reset the bracket?")) return;
+    setSaving(true);
+    try {
+      const res = await api.post('/tournament/reset');
+      setTournament(res.data.tournament);
+      showToast("Tournament reset.");
+    } catch (err) {
+      showToast(err.response?.data?.message || "Error resetting tournament", "error");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleOpenAddPlayer = () => {
+    setEditingPlayerId(null);
+    setName('');
+    setRank((players.length + 1).toString());
+    setPlayingStyle('Attack');
+    setPlayingHand('Right Hand');
+    setBiography('');
+    setCountry('');
+    setAchievementsInput('');
+    setBladeBrand('');
+    setBladeModel('');
+    setForehandBrand('');
+    setForehandModel('');
+    setForehandSponge('');
+    setForehandSpeed(80);
+    setForehandSpin(80);
+    setBackhandBrand('');
+    setBackhandModel('');
+    setBackhandSponge('');
+    setBackhandSpeed(80);
+    setBackhandSpin(80);
+    setAvatarFile(null);
+    setAvatarPreview('');
+    setDeleteAvatar(false);
+    setVideoFile(null);
+    setVideoUrlInput('');
+    setVideoType('external');
+    setDeleteVideo(false);
+    setGalleryFiles([]);
+    setExistingGallery([]);
+    setFormTab('basic');
     setIsFormOpen(true);
   };
 
-  // Handle Player Delete
+  const handleOpenEditPlayer = (p) => {
+    setEditingPlayerId(p._id || p.id);
+    setName(p.name || '');
+    setRank(p.rank?.toString() || '');
+    setPlayingStyle(p.playingStyle || 'Attack');
+    setPlayingHand(p.playingHand || 'Right Hand');
+    setBiography(p.biography || '');
+    setCountry(p.country || '');
+    setAchievementsInput(Array.isArray(p.achievements) ? p.achievements.join('\n') : '');
+    setBladeBrand(p.equipment?.blade?.brand || '');
+    setBladeModel(p.equipment?.blade?.model || '');
+    setForehandBrand(p.equipment?.forehandRubber?.brand || '');
+    setForehandModel(p.equipment?.forehandRubber?.model || '');
+    setForehandSponge(p.equipment?.forehandRubber?.spongeThickness || '');
+    setForehandSpeed(p.equipment?.forehandRubber?.speed || 80);
+    setForehandSpin(p.equipment?.forehandRubber?.spin || 80);
+    setBackhandBrand(p.equipment?.backhandRubber?.brand || '');
+    setBackhandModel(p.equipment?.backhandRubber?.model || '');
+    setBackhandSponge(p.equipment?.backhandRubber?.spongeThickness || '');
+    setBackhandSpeed(p.equipment?.backhandRubber?.speed || 80);
+    setBackhandSpin(p.equipment?.backhandRubber?.spin || 80);
+    setAvatarFile(null);
+    setAvatarPreview(p.avatarUrl || '');
+    setDeleteAvatar(false);
+    setVideoFile(null);
+    setVideoUrlInput(p.promoVideo?.url || '');
+    setVideoType(p.promoVideo?.type || 'external');
+    setDeleteVideo(false);
+    setGalleryFiles([]);
+    setExistingGallery(p.gallery || []);
+    setFormTab('basic');
+    setIsFormOpen(true);
+  };
+
   const handleDeletePlayer = async (id, playerName) => {
-    if (window.confirm(`Are you sure you want to permanently delete player ${playerName}?`)) {
+    if (window.confirm(`Are you sure you want to delete player "${playerName}"?`)) {
       try {
         await api.delete(`/players/${id}`);
-        setToast({ message: `Successfully deleted profile for ${playerName}.`, type: 'success' });
-        loadData();
+        showToast(`Player ${playerName} deleted`);
+        fetchDashboardData();
       } catch (err) {
-        setToast({ message: "Failed to delete player.", type: 'error' });
+        showToast("Error deleting player", "error");
       }
     }
   };
 
-  // Submit Player Form (Create or Edit)
-  const handlePlayerSubmit = async (e) => {
+  const handleSavePlayer = async (e) => {
     e.preventDefault();
-    if (!name || !rank) {
-      setToast({ message: "Name and Rank are required fields.", type: 'error' });
-      return;
-    }
-
     setSaving(true);
+
     const formData = new FormData();
-    
-    // Core parameters
     formData.append('name', name);
     formData.append('rank', rank);
     formData.append('playingStyle', playingStyle);
@@ -244,499 +367,478 @@ const AdminDashboard = () => {
     formData.append('biography', biography);
     formData.append('country', country);
 
-    // Achievements parsed as array of lines
-    const achievements = achievementsInput.split('\n').map(line => line.trim()).filter(Boolean);
-    formData.append('achievements', JSON.stringify(achievements));
+    const achievementsArray = achievementsInput
+      .split('\n')
+      .map(item => item.trim())
+      .filter(item => item.length > 0);
+    formData.append('achievements', JSON.stringify(achievementsArray));
 
-    // Equipment structure
-    const equipment = {
+    const equipmentData = {
       blade: { brand: bladeBrand, model: bladeModel },
       forehandRubber: { brand: forehandBrand, model: forehandModel, spongeThickness: forehandSponge, speed: Number(forehandSpeed), spin: Number(forehandSpin) },
       backhandRubber: { brand: backhandBrand, model: backhandModel, spongeThickness: backhandSponge, speed: Number(backhandSpeed), spin: Number(backhandSpin) }
     };
-    formData.append('equipment', JSON.stringify(equipment));
+    formData.append('equipment', JSON.stringify(equipmentData));
 
-    // File attachments
+    const promoVideoData = { type: videoType, url: videoUrlInput };
+    formData.append('promoVideo', JSON.stringify(promoVideoData));
+
     if (avatarFile) formData.append('avatar', avatarFile);
-    if (videoFile) formData.append('video', videoFile);
+    if (deleteAvatar) formData.append('deleteAvatar', 'true');
+    if (videoFile) formData.append('promoVideoFile', videoFile);
+    if (deleteVideo) formData.append('deleteVideo', 'true');
+
     for (let i = 0; i < galleryFiles.length; i++) {
       formData.append('gallery', galleryFiles[i]);
     }
-
-    // Editing modifications triggers
-    if (editingPlayerId) {
-      formData.append('deleteAvatar', deleteAvatar ? 'true' : 'false');
-      formData.append('deleteVideo', deleteVideo ? 'true' : 'false');
-      formData.append('galleryList', JSON.stringify(existingGallery));
-    }
-    
-    // Video URL triggers
-    if (videoType === 'external') {
-      formData.append('promoVideoUrl', videoUrlInput);
-    }
+    formData.append('existingGallery', JSON.stringify(existingGallery));
 
     try {
       if (editingPlayerId) {
-        await api.put(`/players/${editingPlayerId}`, formData, {
-          headers: { 'Content-Type': 'multipart/form-data' }
-        });
-        setToast({ message: `Successfully updated profile for ${name}.`, type: 'success' });
+        await api.put(`/players/${editingPlayerId}`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+        showToast("Player profile updated!");
       } else {
-        await api.post('/players', formData, {
-          headers: { 'Content-Type': 'multipart/form-data' }
-        });
-        setToast({ message: `Successfully created profile for ${name}.`, type: 'success' });
+        await api.post('/players', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+        showToast("New player added!");
       }
       setIsFormOpen(false);
-      loadData();
+      fetchDashboardData();
     } catch (err) {
-      const msg = err.response?.data?.message || "Failed to save player details.";
-      setToast({ message: msg, type: 'error' });
+      showToast(err.response?.data?.message || "Error saving player profile", "error");
     } finally {
       setSaving(false);
     }
   };
 
-  // Submit Settings Edit
-  const handleSettingsSubmit = async (e) => {
-    e.preventDefault();
-    setSaving(true);
+  const renderAdminMatchCard = (m) => {
+    if (!m) return null;
+    return (
+      <div style={{ padding: '14px', backgroundColor: 'var(--color-surface-container)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.08)' }}>
+        <div style={{ fontSize: '0.75rem', color: 'var(--color-primary)', fontWeight: 700, marginBottom: '8px', display: 'flex', justifyContent: 'space-between' }}>
+          <span>MATCH</span>
+          <span style={{ color: m.status === 'completed' ? 'var(--color-secondary)' : 'var(--color-tertiary)' }}>
+            {m.status === 'completed' ? '✓ Finished' : 'Pending'}
+          </span>
+        </div>
 
-    const formData = new FormData();
-    formData.append('websiteName', websiteName);
-    formData.append('aboutContent', aboutContent);
-    formData.append('contactEmail', contactEmail);
-    formData.append('contactPhone', contactPhone);
-    formData.append('location', locationVal);
-    formData.append('deleteLogo', deleteLogo ? 'true' : 'false');
-    formData.append('deleteBanner', deleteBanner ? 'true' : 'false');
+        <button
+          disabled={saving || !m.player1 || m.status === 'completed'}
+          onClick={() => handleSelectWinner(m.matchId, m.player1._id || m.player1.id)}
+          className={`btn ${m.winner && (m.winner._id === m.player1?._id || m.winner.id === m.player1?.id) ? 'btn-primary' : 'btn-secondary'}`}
+          style={{ width: '100%', justifyContent: 'space-between', marginBottom: '6px', fontSize: '0.8rem', opacity: m.status === 'completed' && (!m.winner || (m.winner._id !== m.player1?._id && m.winner.id !== m.player1?.id)) ? 0.4 : 1 }}
+        >
+          <span>{m.player1 ? m.player1.name : 'TBD'}</span>
+          {m.player1 && m.status !== 'completed' && <span style={{ fontSize: '0.7rem' }}>Pick Winner</span>}
+        </button>
 
-    const socialLinks = { facebook: fbLink, instagram: igLink, youtube: ytLink };
-    formData.append('socialLinks', JSON.stringify(socialLinks));
-    formData.append('footerText', footerText);
-
-    if (logoFile) formData.append('logo', logoFile);
-    if (bannerFile) formData.append('banner', bannerFile);
-
-    try {
-      const res = await api.put('/settings', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
-      setSettings(res.data);
-      populateSettingsForm(res.data);
-      setToast({ message: "Global website settings updated successfully.", type: 'success' });
-      
-      // Clear file inputs
-      setLogoFile(null);
-      setBannerFile(null);
-      setDeleteLogo(false);
-      setDeleteBanner(false);
-    } catch (err) {
-      setToast({ message: "Failed to update website configurations.", type: 'error' });
-    } finally {
-      setSaving(false);
-    }
+        <button
+          disabled={saving || !m.player2 || m.status === 'completed'}
+          onClick={() => handleSelectWinner(m.matchId, m.player2._id || m.player2.id)}
+          className={`btn ${m.winner && (m.winner._id === m.player2?._id || m.winner.id === m.player2?.id) ? 'btn-primary' : 'btn-secondary'}`}
+          style={{ width: '100%', justifyContent: 'space-between', fontSize: '0.8rem', opacity: m.status === 'completed' && (!m.winner || (m.winner._id !== m.player2?._id && m.winner.id !== m.player2?.id)) ? 0.4 : 1 }}
+        >
+          <span>{m.player2 ? m.player2.name : (m.player1 && !m.player2 ? 'BYE (Advanced)' : 'TBD')}</span>
+          {m.player2 && m.status !== 'completed' && <span style={{ fontSize: '0.7rem' }}>Pick Winner</span>}
+        </button>
+      </div>
+    );
   };
 
-  // Change password submit
-  const handlePasswordSubmit = async (e) => {
-    e.preventDefault();
-    if (newPassword !== confirmPassword) {
-      setToast({ message: "New passwords do not match.", type: 'error' });
-      return;
-    }
+  const isPollExpired = pollEndsAt && new Date(pollEndsAt).getTime() < new Date().getTime();
 
-    setSaving(true);
-    const result = await changePassword(oldPassword, newPassword);
-    setSaving(false);
-
-    if (result.success) {
-      setToast({ message: result.message, type: 'success' });
-      setOldPassword('');
-      setNewPassword('');
-      setConfirmPassword('');
-    } else {
-      setToast({ message: result.error, type: 'error' });
-    }
-  };
-
-  // Delete Gallery Item
-  const handleRemoveExistingGalleryImage = (imageUrl) => {
-    setExistingGallery(existingGallery.filter(img => img !== imageUrl));
-  };
+  if (loading) {
+    return (
+      <div className="section-padding container-width" style={{ textAlign: 'center', paddingTop: '100px' }}>
+        <div className="skeleton" style={{ height: '30px', width: '200px', margin: '0 auto 20px' }}></div>
+        <div className="skeleton" style={{ height: '400px', width: '100%' }}></div>
+      </div>
+    );
+  }
 
   return (
-    <div style={{ display: 'flex', minHeight: '85vh', fontFamily: "'Inter', sans-serif" }}>
-      {/* Sidebar navigation panel */}
-      <div className="glass-panel" style={{
-        width: '260px',
-        borderRadius: '0 16px 16px 0',
-        padding: '24px 16px',
-        borderLeft: 'none',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '24px',
-        flexShrink: 0
-      }}>
-        {/* Profile identity */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: '20px' }}>
-          <div style={{ backgroundColor: 'rgba(37,99,235,0.1)', border: '1px solid rgba(37,99,235,0.3)', width: '40px', height: '40px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifySelf: 'center', justifyContent: 'center', color: '#2563eb' }}>
-            <FaUserShield />
-          </div>
-          <div>
-            <h4 style={{ color: '#ffffff', fontSize: '0.95rem', fontWeight: 600 }}>Administrator</h4>
-            <span style={{ color: '#64748b', fontSize: '0.75rem' }}>Active Session</span>
-          </div>
-        </div>
+    <div className="section-padding container-width">
+      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
-        {/* Navigation list */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flexGrow: 1 }}>
-          <style>{`
-            .sidebar-btn {
-              display: flex;
-              align-items: center;
-              gap: 12px;
-              width: 100%;
-              padding: 12px 16px;
-              background: none;
-              border: none;
-              color: #94a3b8;
-              font-family: 'Outfit', sans-serif;
-              font-size: 0.9rem;
-              font-weight: 500;
-              text-align: left;
-              border-radius: 8px;
-              cursor: pointer;
-              transition: all 0.2s;
-            }
-            .sidebar-btn:hover {
-              background: rgba(255, 255, 255, 0.03);
-              color: #ffffff;
-            }
-            .sidebar-btn.active {
-              background: rgba(37, 99, 235, 0.15);
-              color: #2563eb;
-              border: 1px solid rgba(37, 99, 235, 0.25);
-            }
-          `}</style>
-          
-          <button onClick={() => setActiveTab('overview')} className={`sidebar-btn ${activeTab === 'overview' ? 'active' : ''}`}><FaUsers /> Overview</button>
-          <button onClick={() => setActiveTab('players')} className={`sidebar-btn ${activeTab === 'players' ? 'active' : ''}`}><FaPlus /> Player Profiles</button>
-          <button onClick={() => setActiveTab('settings')} className={`sidebar-btn ${activeTab === 'settings' ? 'active' : ''}`}><FaCog /> Global Settings</button>
-          <button onClick={() => setActiveTab('account')} className={`sidebar-btn ${activeTab === 'account' ? 'active' : ''}`}><FaLock /> Account Password</button>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '32px', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '20px' }}>
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--color-primary)', fontWeight: 700, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            <FaUserShield /> Control Panel
+          </div>
+          <h1 style={{ fontSize: '2rem', color: 'var(--color-on-surface)', fontFamily: "var(--font-family-heading)" }}>ADMIN DASHBOARD</h1>
         </div>
-
-        {/* Logout bottom */}
-        <button onClick={logout} className="btn btn-danger" style={{ width: '100%', gap: '10px', fontSize: '0.85rem' }}>
+        <button onClick={logout} className="btn btn-danger" style={{ padding: '8px 16px', fontSize: '0.85rem' }}>
           <FaSignOutAlt /> Sign Out
         </button>
       </div>
 
-      {/* Main content display window */}
-      <div style={{ flexGrow: 1, padding: '40px', overflowY: 'auto', position: 'relative' }}>
-        {loading ? (
-          <div style={{ textAlign: 'center', padding: '60px 0', color: '#94a3b8' }}>
-            <div style={{ animation: 'spin 1s linear infinite', border: '3px solid rgba(255,255,255,0.05)', borderTopColor: '#2563eb', borderRadius: '50%', width: '40px', height: '40px', margin: '0 auto 16px' }} />
-            <p>Loading Dashboard Panel...</p>
-            <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-          </div>
-        ) : (
-          <div>
-            {/* TAB: OVERVIEW */}
-            {activeTab === 'overview' && (
-              <div>
-                <h1 style={{ fontSize: '2rem', fontFamily: "'Outfit', sans-serif", marginBottom: '24px' }}>Overview Standings</h1>
-                
-                {/* Stats row */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginBottom: '40px' }}>
-                  <div className="glass-panel" style={{ padding: '24px', display: 'flex', alignItems: 'center', gap: '20px' }}>
-                    <div style={{ fontSize: '32px', color: '#2563eb' }}><FaUsers /></div>
-                    <div>
-                      <h3 style={{ fontSize: '1.75rem', fontWeight: 800 }}>{stats.totalPlayers}</h3>
-                      <span style={{ fontSize: '0.8rem', color: '#94a3b8', textTransform: 'uppercase' }}>Players Showcase</span>
-                    </div>
-                  </div>
-                  <div className="glass-panel" style={{ padding: '24px', display: 'flex', alignItems: 'center', gap: '20px' }}>
-                    <div style={{ fontSize: '32px', color: '#0ea5e9' }}><FaImage /></div>
-                    <div>
-                      <h3 style={{ fontSize: '1.75rem', fontWeight: 800 }}>{stats.totalPhotos}</h3>
-                      <span style={{ fontSize: '0.8rem', color: '#94a3b8', textTransform: 'uppercase' }}>Media Images</span>
-                    </div>
-                  </div>
-                  <div className="glass-panel" style={{ padding: '24px', display: 'flex', alignItems: 'center', gap: '20px' }}>
-                    <div style={{ fontSize: '32px', color: '#10b981' }}><FaVideo /></div>
-                    <div>
-                      <h3 style={{ fontSize: '1.75rem', fontWeight: 800 }}>{stats.totalVideos}</h3>
-                      <span style={{ fontSize: '0.8rem', color: '#94a3b8', textTransform: 'uppercase' }}>Videos Added</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Quick actions panel */}
-                <div className="glass-panel" style={{ padding: '24px' }}>
-                  <h3 style={{ fontSize: '1.25rem', fontFamily: "'Outfit', sans-serif", marginBottom: '16px' }}>Quick Control Actions</h3>
-                  <div style={{ display: 'flex', gap: '16px' }}>
-                    <button onClick={() => handleOpenPlayerForm(null)} className="btn btn-primary"><FaPlus /> Add New Player Profile</button>
-                    <button onClick={() => setActiveTab('settings')} className="btn btn-secondary"><FaCog /> Edit Brand Details</button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* TAB: PLAYERS MANAGEMENT */}
-            {activeTab === 'players' && (
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-                  <h1 style={{ fontSize: '2rem', fontFamily: "'Outfit', sans-serif" }}>Player Profiles</h1>
-                  <button onClick={() => handleOpenPlayerForm(null)} className="btn btn-primary"><FaPlus /> Add Player</button>
-                </div>
-
-                {/* Player List Table */}
-                <div className="glass-panel" style={{ overflowX: 'auto', padding: '16px' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem' }}>
-                    <thead>
-                      <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                        <th style={{ padding: '12px', color: '#94a3b8' }}>Rank</th>
-                        <th style={{ padding: '12px', color: '#94a3b8' }}>Player Name</th>
-                        <th style={{ padding: '12px', color: '#94a3b8' }}>Style</th>
-                        <th style={{ padding: '12px', color: '#94a3b8' }}>Hand</th>
-                        <th style={{ padding: '12px', color: '#94a3b8', textAlign: 'right' }}>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {players.map((player) => (
-                        <tr key={player._id || player.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
-                          <td style={{ padding: '12px', fontWeight: 700 }}>#{player.rank}</td>
-                          <td style={{ padding: '12px', color: '#ffffff' }}>{player.name}</td>
-                          <td style={{ padding: '12px', color: '#94a3b8' }}>{player.playingStyle}</td>
-                          <td style={{ padding: '12px', color: '#94a3b8' }}>{player.playingHand}</td>
-                          <td style={{ padding: '12px', textAlign: 'right', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-                            <button onClick={() => handleOpenPlayerForm(player)} className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: '0.8rem' }}>
-                              <FaEdit /> Edit
-                            </button>
-                            <button onClick={() => handleDeletePlayer(player._id || player.id, player.name)} className="btn btn-danger" style={{ padding: '6px 12px', fontSize: '0.8rem' }}>
-                              <FaTrash /> Delete
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                      {players.length === 0 && (
-                        <tr>
-                          <td colSpan="5" style={{ textAlign: 'center', padding: '24px', color: '#64748b' }}>No player records registered. Click 'Add Player' to start.</td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-
-            {/* TAB: GLOBAL SETTINGS */}
-            {activeTab === 'settings' && (
-              <div>
-                <h1 style={{ fontSize: '2rem', fontFamily: "'Outfit', sans-serif", marginBottom: '24px' }}>Website Settings</h1>
-                
-                <form onSubmit={handleSettingsSubmit} className="glass-panel" style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                    <div>
-                      <label className="form-label">Website / Club Name</label>
-                      <input type="text" value={websiteName} onChange={(e)=>setWebsiteName(e.target.value)} className="form-input" required />
-                    </div>
-                    <div>
-                      <label className="form-label">Contact Phone</label>
-                      <input type="text" value={contactPhone} onChange={(e)=>setContactPhone(e.target.value)} className="form-input" />
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                    <div>
-                      <label className="form-label">Contact Email</label>
-                      <input type="email" value={contactEmail} onChange={(e)=>setContactEmail(e.target.value)} className="form-input" />
-                    </div>
-                    <div>
-                      <label className="form-label">Location Address</label>
-                      <input type="text" value={locationVal} onChange={(e)=>setLocationVal(e.target.value)} className="form-input" />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="form-label">Homepage About Content</label>
-                    <textarea value={aboutContent} onChange={(e)=>setAboutContent(e.target.value)} className="form-input" rows="4" style={{ resize: 'vertical' }} />
-                  </div>
-
-                  {/* Logo and Banner upload controls */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '20px' }}>
-                    <div>
-                      <label className="form-label">Website Logo File</label>
-                      <input type="file" accept="image/*" onChange={(e)=>setLogoFile(e.target.files[0])} style={{ display: 'none' }} id="logo-file" />
-                      <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-                        <label htmlFor="logo-file" className="btn btn-secondary" style={{ cursor: 'pointer' }}><FaUpload /> Upload Image</label>
-                        {logoFile && <span style={{ fontSize: '0.8rem', color: '#10b981' }}>{logoFile.name}</span>}
-                      </div>
-                      {logoPreview && !deleteLogo && (
-                        <div style={{ marginTop: '10px', display: 'flex', alignItems: 'center', gap: '16px' }}>
-                          <img src={logoPreview} alt="logo" style={{ height: '40px', objectFit: 'contain', backgroundColor: 'rgba(255,255,255,0.05)', padding: '4px', borderRadius: '4px' }} />
-                          <button type="button" onClick={()=>setDeleteLogo(true)} className="btn btn-danger" style={{ padding: '4px 8px', fontSize: '0.75rem' }}><FaTrash /> Remove</button>
-                        </div>
-                      )}
-                      {deleteLogo && <span style={{ fontSize: '0.8rem', color: '#ef4444' }}>Logo will be deleted on save</span>}
-                    </div>
-
-                    <div>
-                      <label className="form-label">Homepage Banner Image</label>
-                      <input type="file" accept="image/*" onChange={(e)=>setBannerFile(e.target.files[0])} style={{ display: 'none' }} id="banner-file" />
-                      <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-                        <label htmlFor="banner-file" className="btn btn-secondary" style={{ cursor: 'pointer' }}><FaUpload /> Upload Image</label>
-                        {bannerFile && <span style={{ fontSize: '0.8rem', color: '#10b981' }}>{bannerFile.name}</span>}
-                      </div>
-                      {bannerPreview && !deleteBanner && (
-                        <div style={{ marginTop: '10px', display: 'flex', alignItems: 'center', gap: '16px' }}>
-                          <img src={bannerPreview} alt="banner" style={{ height: '50px', width: '90px', objectFit: 'cover', borderRadius: '4px' }} />
-                          <button type="button" onClick={()=>setDeleteBanner(true)} className="btn btn-danger" style={{ padding: '4px 8px', fontSize: '0.75rem' }}><FaTrash /> Remove</button>
-                        </div>
-                      )}
-                      {deleteBanner && <span style={{ fontSize: '0.8rem', color: '#ef4444' }}>Banner will be deleted on save</span>}
-                    </div>
-                  </div>
-
-                  {/* Social Handles links */}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '20px' }}>
-                    <div>
-                      <label className="form-label">Facebook Profile URL</label>
-                      <input type="url" value={fbLink} onChange={(e)=>setFbLink(e.target.value)} className="form-input" placeholder="https://facebook.com/club" />
-                    </div>
-                    <div>
-                      <label className="form-label">Instagram Profile URL</label>
-                      <input type="url" value={igLink} onChange={(e)=>setIgLink(e.target.value)} className="form-input" placeholder="https://instagram.com/club" />
-                    </div>
-                    <div>
-                      <label className="form-label">YouTube Channel URL</label>
-                      <input type="url" value={ytLink} onChange={(e)=>setYtLink(e.target.value)} className="form-input" placeholder="https://youtube.com/club" />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="form-label">Footer Copyright Label Text</label>
-                    <input type="text" value={footerText} onChange={(e)=>setFooterText(e.target.value)} className="form-input" />
-                  </div>
-
-                  <button type="submit" disabled={saving} className="btn btn-primary" style={{ alignSelf: 'flex-start', marginTop: '12px' }}>
-                    {saving ? "Saving configurations..." : "Save Settings"}
-                  </button>
-                </form>
-              </div>
-            )}
-
-            {/* TAB: ACCOUNT PASSWORD CONFIG */}
-            {activeTab === 'account' && (
-              <div>
-                <h1 style={{ fontSize: '2rem', fontFamily: "'Outfit', sans-serif", marginBottom: '24px' }}>Account Credentials</h1>
-                
-                <form onSubmit={handlePasswordSubmit} className="glass-panel" style={{ padding: '32px', maxWidth: '500px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                  <div>
-                    <label className="form-label">Old Password</label>
-                    <input type="password" value={oldPassword} onChange={(e)=>setOldPassword(e.target.value)} className="form-input" required />
-                  </div>
-                  <div>
-                    <label className="form-label">New Password</label>
-                    <input type="password" value={newPassword} onChange={(e)=>setNewPassword(e.target.value)} className="form-input" required />
-                  </div>
-                  <div>
-                    <label className="form-label">Confirm New Password</label>
-                    <input type="password" value={confirmPassword} onChange={(e)=>setConfirmPassword(e.target.value)} className="form-input" required />
-                  </div>
-
-                  <button type="submit" disabled={saving} className="btn btn-primary" style={{ alignSelf: 'flex-start', gap: '10px' }}>
-                    <FaKey /> {saving ? "Changing password..." : "Change Password"}
-                  </button>
-                </form>
-              </div>
-            )}
-          </div>
-        )}
+      {/* Navigation Tabs */}
+      <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', marginBottom: '32px', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '12px' }}>
+        {[
+          { id: 'overview', label: 'Overview', icon: <FaGlobe /> },
+          { id: 'players', label: `Players (${players.length})`, icon: <FaUsers /> },
+          { id: 'tournament', label: 'Tournament Control', icon: <FaTrophy /> },
+          { id: 'voting', label: 'Voting Manager', icon: <FaCheckCircle /> },
+          { id: 'settings', label: 'Site Settings', icon: <FaCog /> }
+        ].map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`btn ${activeTab === tab.id ? 'btn-primary' : 'btn-secondary'}`}
+            style={{ padding: '10px 18px', fontSize: '0.85rem' }}
+          >
+            {tab.icon} {tab.label}
+          </button>
+        ))}
       </div>
 
-      {/* PLAYER ADD/EDIT MODAL FORM */}
-      {isFormOpen && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          width: '100%',
-          height: '100%',
-          backgroundColor: 'rgba(5,7,14,0.85)',
-          backdropFilter: 'blur(8px)',
-          zIndex: 5000,
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          padding: '24px'
-        }}>
-          <div className="glass-panel" style={{
-            width: '100%',
-            maxWidth: '750px',
-            maxHeight: '90vh',
-            overflowY: 'auto',
-            padding: '32px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '24px',
-            boxShadow: '0 20px 50px rgba(0,0,0,0.6)'
-          }}>
-            {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: '16px' }}>
-              <h2 style={{ fontSize: '1.5rem', fontFamily: "'Outfit', sans-serif" }}>
-                {editingPlayerId ? `Edit Player Profile: ${name}` : 'Create Player Profile'}
+      {/* TAB 1: OVERVIEW */}
+      {activeTab === 'overview' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '20px' }}>
+            <div className="m3-card" style={{ padding: '24px', display: 'flex', alignItems: 'center', gap: '20px' }}>
+              <div style={{ padding: '16px', borderRadius: '12px', backgroundColor: 'rgba(37,99,235,0.15)', color: 'var(--color-primary)', fontSize: '28px' }}>
+                <FaUsers />
+              </div>
+              <div>
+                <div style={{ fontSize: '0.8rem', color: 'var(--color-on-surface-variant)', fontWeight: 600, textTransform: 'uppercase' }}>Registered Players</div>
+                <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--color-on-surface)', fontFamily: "var(--font-family-heading)" }}>{stats.totalPlayers}</div>
+              </div>
+            </div>
+
+            <div className="m3-card" style={{ padding: '24px', display: 'flex', alignItems: 'center', gap: '20px' }}>
+              <div style={{ padding: '16px', borderRadius: '12px', backgroundColor: 'rgba(16,185,129,0.15)', color: 'var(--color-secondary)', fontSize: '28px' }}>
+                <FaImage />
+              </div>
+              <div>
+                <div style={{ fontSize: '0.8rem', color: 'var(--color-on-surface-variant)', fontWeight: 600, textTransform: 'uppercase' }}>Photos & Avatars</div>
+                <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--color-on-surface)', fontFamily: "var(--font-family-heading)" }}>{stats.totalPhotos}</div>
+              </div>
+            </div>
+
+            <div className="m3-card" style={{ padding: '24px', display: 'flex', alignItems: 'center', gap: '20px' }}>
+              <div style={{ padding: '16px', borderRadius: '12px', backgroundColor: 'rgba(239,68,68,0.15)', color: 'var(--color-error)', fontSize: '28px' }}>
+                <FaVideo />
+              </div>
+              <div>
+                <div style={{ fontSize: '0.8rem', color: 'var(--color-on-surface-variant)', fontWeight: 600, textTransform: 'uppercase' }}>Promo Videos</div>
+                <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--color-on-surface)', fontFamily: "var(--font-family-heading)" }}>{stats.totalVideos}</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="m3-card" style={{ padding: '24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
+            <div>
+              <h3 style={{ fontSize: '1.2rem', color: 'var(--color-on-surface)', fontFamily: "var(--font-family-heading)" }}>Quick Action: Add Player</h3>
+              <p style={{ color: 'var(--color-on-surface-variant)', fontSize: '0.85rem' }}>Create a new player profile with specialized equipment specs and videos.</p>
+            </div>
+            <button onClick={handleOpenAddPlayer} className="btn btn-primary">
+              <FaPlus /> Add New Player
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 2: PLAYERS MANAGEMENT */}
+      {activeTab === 'players' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h2 style={{ fontSize: '1.4rem', color: 'var(--color-on-surface)', fontFamily: "var(--font-family-heading)" }}>REGISTERED PLAYERS ({players.length})</h2>
+            <button onClick={handleOpenAddPlayer} className="btn btn-primary">
+              <FaPlus /> Add New Player
+            </button>
+          </div>
+
+          <div className="m3-card" style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', backgroundColor: 'var(--color-surface-container)' }}>
+                  <th style={{ padding: '14px 16px', fontSize: '0.8rem', textTransform: 'uppercase', color: 'var(--color-on-surface-variant)' }}>Rank</th>
+                  <th style={{ padding: '14px 16px', fontSize: '0.8rem', textTransform: 'uppercase', color: 'var(--color-on-surface-variant)' }}>Player Name</th>
+                  <th style={{ padding: '14px 16px', fontSize: '0.8rem', textTransform: 'uppercase', color: 'var(--color-on-surface-variant)' }}>Style / Hand</th>
+                  <th style={{ padding: '14px 16px', fontSize: '0.8rem', textTransform: 'uppercase', color: 'var(--color-on-surface-variant)' }}>Country</th>
+                  <th style={{ padding: '14px 16px', fontSize: '0.8rem', textTransform: 'uppercase', color: 'var(--color-on-surface-variant)', textAlign: 'right' }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {players.map(p => (
+                  <tr key={p._id || p.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                    <td style={{ padding: '14px 16px', fontWeight: 700, color: 'var(--color-primary)' }}>#{p.rank}</td>
+                    <td style={{ padding: '14px 16px', fontWeight: 600, color: 'var(--color-on-surface)' }}>{p.name}</td>
+                    <td style={{ padding: '14px 16px', color: 'var(--color-on-surface)', fontSize: '0.85rem' }}>{p.playingStyle} • {p.playingHand}</td>
+                    <td style={{ padding: '14px 16px', color: 'var(--color-on-surface-variant)', fontSize: '0.85rem' }}>{p.country || 'N/A'}</td>
+                    <td style={{ padding: '14px 16px', textAlign: 'right' }}>
+                      <button onClick={() => handleOpenEditPlayer(p)} className="btn btn-secondary" style={{ padding: '6px 10px', fontSize: '0.75rem', marginRight: '6px' }}>
+                        <FaEdit /> Edit
+                      </button>
+                      <button onClick={() => handleDeletePlayer(p._id || p.id, p.name)} className="btn btn-danger" style={{ padding: '6px 10px', fontSize: '0.75rem' }}>
+                        <FaTrash /> Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 3: TOURNAMENT CONTROL */}
+      {activeTab === 'tournament' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          <div className="m3-card" style={{ padding: '24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
+            <div>
+              <h2 style={{ fontSize: '1.4rem', color: 'var(--color-on-surface)', fontFamily: "var(--font-family-heading)" }}>TOURNAMENT BRACKET CONTROL</h2>
+              <p style={{ color: 'var(--color-on-surface-variant)', fontSize: '0.85rem', marginTop: '4px' }}>
+                Shuffle registered players randomly and generate the single-elimination tournament bracket rounds.
+              </p>
+            </div>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button onClick={handleGenerateTournament} disabled={saving} className="btn btn-primary" style={{ padding: '10px 20px' }}>
+                <FaRandom /> {saving ? 'Sorting...' : 'Sort & Generate Bracket'}
+              </button>
+              <button onClick={handleResetTournament} disabled={saving} className="btn btn-danger" style={{ padding: '10px 18px' }}>
+                Reset Bracket
+              </button>
+            </div>
+          </div>
+
+          {tournament && tournament.rounds && tournament.rounds.length > 0 ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              {tournament.rounds.map((round) => (
+                <div key={round.roundNumber} className="m3-card" style={{ padding: '20px' }}>
+                  <h3 style={{ fontSize: '1.2rem', color: 'var(--color-primary)', fontFamily: "var(--font-family-heading)", marginBottom: '16px', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '10px' }}>
+                    {round.roundName} (Round #{round.roundNumber})
+                  </h3>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '16px' }}>
+                    {round.matches.map((m, idx) => (
+                      <React.Fragment key={m.matchId}>
+                        {renderAdminMatchCard(m)}
+                      </React.Fragment>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="m3-card" style={{ padding: '36px', textAlign: 'center', color: 'var(--color-on-surface-variant)' }}>
+              No tournament bracket generated yet. Click "Sort & Generate Bracket" above to start!
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* TAB 4: VOTING MANAGER */}
+      {activeTab === 'voting' && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px', alignItems: 'start' }}>
+          
+          {/* Settings form */}
+          <form onSubmit={handleUpdatePollSettings} className="m3-card" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <h2 style={{ fontSize: '1.3rem', color: 'var(--color-on-surface)', fontFamily: "var(--font-family-heading)", borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '10px' }}>
+              POLL CONFIGURATION
+            </h2>
+
+            <div style={{ display: 'flex', alignItems: 'center', justifyBetween: 'space-between', gap: '12px' }}>
+              <input
+                type="checkbox"
+                id="pollActive"
+                checked={pollActive}
+                onChange={(e) => setPollActive(e.target.checked)}
+                style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+              />
+              <label htmlFor="pollActive" style={{ color: 'var(--color-on-surface)', fontWeight: 600, fontSize: '0.9rem', cursor: 'pointer' }}>
+                Enable Fan Favorite Poll (Voting Active)
+              </label>
+            </div>
+
+            <div>
+              <label className="form-label">Poll Expiration Date & Time</label>
+              <input
+                type="datetime-local"
+                className="form-input"
+                value={pollEndsAt}
+                onChange={(e) => setPollEndsAt(e.target.value)}
+              />
+              <span style={{ fontSize: '0.75rem', color: 'var(--color-on-surface-variant)', marginTop: '4px', display: 'block' }}>
+                Leave empty for no automatic expiration.
+              </span>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '16px' }}>
+              <input
+                type="checkbox"
+                id="pollPublished"
+                checked={pollPublished}
+                onChange={(e) => setPollPublished(e.target.checked)}
+                style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+              />
+              <label htmlFor="pollPublished" style={{ color: 'var(--color-on-surface)', fontWeight: 600, fontSize: '0.9rem', cursor: 'pointer' }}>
+                Publish Standings Podium on Homepage
+              </label>
+            </div>
+
+            <button type="submit" disabled={saving} className="btn btn-primary" style={{ width: '100%', marginTop: '10px' }}>
+              {saving ? 'Updating...' : 'Save Configuration'}
+            </button>
+
+            <div style={{ marginTop: '12px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '16px' }}>
+              <button type="button" onClick={handleResetPoll} disabled={saving} className="btn btn-danger" style={{ width: '100%' }}>
+                Remove Current Poll (Reset)
+              </button>
+              <span style={{ fontSize: '0.75rem', color: 'var(--color-error)', marginTop: '6px', display: 'block', textAlign: 'center' }}>
+                Warning: Erases all current votes.
+              </span>
+            </div>
+          </form>
+
+          {/* Standings breakdown & Social share */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            {/* Social templates */}
+            <div className="m3-card" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <h2 style={{ fontSize: '1.3rem', color: 'var(--color-on-surface)', fontFamily: "var(--font-family-heading)" }}>
+                SHARE ON WHATSAPP & PLATFORMS
               </h2>
-              <button onClick={() => setIsFormOpen(false)} style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '20px', cursor: 'pointer' }}><FaTimes /></button>
+
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <button type="button" onClick={handleCopyInviteTemplate} className="btn btn-secondary" style={{ flex: 1, fontSize: '0.8rem', padding: '10px' }}>
+                  <FaShareAlt /> Copy Invite Link Template
+                </button>
+                <button type="button" onClick={handleCopyResultsTemplate} className="btn btn-secondary" style={{ flex: 1, fontSize: '0.8rem', padding: '10px' }}>
+                  <FaTrophy /> Copy Results Template
+                </button>
+              </div>
             </div>
 
-            {/* Modal Form tabs */}
-            <div style={{ display: 'flex', gap: '12px', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '8px' }}>
-              <style>{`
-                .form-tab-btn {
-                  background: none;
-                  border: none;
-                  color: #94a3b8;
-                  font-family: 'Outfit', sans-serif;
-                  font-size: 0.9rem;
-                  font-weight: 600;
-                  cursor: pointer;
-                  padding: 8px 16px;
-                  border-radius: 6px;
-                  transition: all 0.2s;
-                }
-                .form-tab-btn.active {
-                  background: rgba(37,99,235,0.15);
-                  color: #2563eb;
-                }
-              `}</style>
-              <button type="button" onClick={()=>setFormTab('basic')} className={`form-tab-btn ${formTab === 'basic' ? 'active' : ''}`}><FaGlobe /> Basic Info</button>
-              <button type="button" onClick={()=>setFormTab('equipment')} className={`form-tab-btn ${formTab === 'equipment' ? 'active' : ''}`}>🏓 Equipment Sheet</button>
-              <button type="button" onClick={()=>setFormTab('media')} className={`form-tab-btn ${formTab === 'media' ? 'active' : ''}`}><FaVideo /> Media Files</button>
+            {/* Current Standings */}
+            <div className="m3-card" style={{ padding: '24px' }}>
+              <h2 style={{ fontSize: '1.3rem', color: isPollExpired ? 'var(--color-tertiary)' : 'var(--color-on-surface)', fontFamily: "var(--font-family-heading)", marginBottom: '16px' }}>
+                {isPollExpired ? '🏆 FINAL POLL RESULTS' : 'POLL STANDINGS (VOTES CASTED)'}
+              </h2>
+
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', backgroundColor: 'var(--color-surface-container)' }}>
+                      <th style={{ padding: '10px', fontSize: '0.8rem', color: 'var(--color-on-surface-variant)' }}>Player</th>
+                      <th style={{ padding: '10px', fontSize: '0.8rem', color: 'var(--color-on-surface-variant)', textAlign: 'right' }}>Total Votes</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[...players]
+                      .sort((a,b) => (b.votes || 0) - (a.votes || 0))
+                      .map((p, index) => (
+                        <tr key={p._id || p.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', backgroundColor: (isPollExpired && index === 0 && p.votes > 0) ? 'rgba(217, 119, 6, 0.15)' : 'transparent' }}>
+                          <td style={{ padding: '10px', fontWeight: 600, color: (isPollExpired && index === 0 && p.votes > 0) ? 'var(--color-tertiary)' : 'var(--color-on-surface)', fontSize: '0.85rem' }}>
+                            {isPollExpired && index === 0 && p.votes > 0 && <span style={{ marginRight: '6px' }}>👑</span>}
+                            {p.name}
+                          </td>
+                          <td style={{ padding: '10px', textAlign: 'right', fontWeight: 700, color: (isPollExpired && index === 0 && p.votes > 0) ? 'var(--color-tertiary)' : 'var(--color-secondary)', fontSize: '0.85rem' }}>
+                            {p.votes || 0}
+                          </td>
+                        </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'settings' && (
+        <div style={{ animation: 'fadeIn 0.3s ease' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
+            <h2 style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: 0, fontFamily: "var(--font-family-heading)", fontSize: '1.5rem', color: 'var(--color-primary)' }}>
+              <FaCog /> Site Settings
+            </h2>
+          </div>
+
+          <form onSubmit={handleUpdateSiteSettings} className="m3-card" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px', maxWidth: '600px' }}>
+            <div>
+              <h3 style={{ margin: '0 0 16px 0', fontSize: '1.1rem', color: 'var(--color-on-surface)' }}>Contact Information</h3>
+              <p style={{ margin: '0 0 16px 0', color: 'var(--color-text-secondary)', fontSize: '0.9rem' }}>
+                Update the footer contact details shown across the site.
+              </p>
+            </div>
+            
+            <div className="form-group">
+              <label className="form-label">Location (Address)</label>
+              <input
+                type="text"
+                className="form-input"
+                value={siteLocation}
+                onChange={e => setSiteLocation(e.target.value)}
+                placeholder="e.g., 123 Ping Pong Way, Sports City"
+              />
             </div>
 
-            {/* Main Form container */}
-            <form onSubmit={handlePlayerSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              
-              {/* TAB: BASIC INFO */}
+            <div className="form-group">
+              <label className="form-label">Contact Phone</label>
+              <input
+                type="text"
+                className="form-input"
+                value={siteContactPhone}
+                onChange={e => setSiteContactPhone(e.target.value)}
+                placeholder="e.g., +1 (555) 123-4567"
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Contact Email</label>
+              <input
+                type="email"
+                className="form-input"
+                value={siteContactEmail}
+                onChange={e => setSiteContactEmail(e.target.value)}
+                placeholder="e.g., info@championshiptt.com"
+              />
+            </div>
+
+            <button type="submit" className="btn btn-primary" style={{ marginTop: '10px' }} disabled={saving}>
+              {saving ? 'Saving...' : 'Save Site Settings'}
+            </button>
+          </form>
+        </div>
+      )}
+
+      {/* PLAYER MODAL (FORM) */}
+      {isFormOpen && (
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(4px)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyCenter: 'center', padding: '16px' }}>
+          <div className="m3-card" style={{ width: '100%', maxWidth: '700px', maxHeight: '90vh', overflowY: 'auto', padding: '24px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '12px' }}>
+              <h2 style={{ fontSize: '1.3rem', color: 'var(--color-on-surface)', fontFamily: "var(--font-family-heading)" }}>
+                {editingPlayerId ? 'Edit Player Profile' : 'Add New Player'}
+              </h2>
+              <button onClick={() => setIsFormOpen(false)} style={{ background: 'none', border: 'none', color: 'var(--color-on-surface-variant)', fontSize: '20px', cursor: 'pointer' }}>
+                <FaTimes />
+              </button>
+            </div>
+
+            <form onSubmit={handleSavePlayer} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              {/* Tab Navigation for Form */}
+              <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '12px', marginBottom: '8px' }}>
+                <button type="button" onClick={() => setFormTab('basic')} className={`btn ${formTab === 'basic' ? 'btn-primary' : 'btn-secondary'}`} style={{ padding: '6px 12px', fontSize: '0.85rem' }}>Basic Info</button>
+                <button type="button" onClick={() => setFormTab('equipment')} className={`btn ${formTab === 'equipment' ? 'btn-primary' : 'btn-secondary'}`} style={{ padding: '6px 12px', fontSize: '0.85rem' }}>Equipment & Media</button>
+              </div>
+
               {formTab === 'basic' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '16px' }}>
+                <>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
                     <div>
-                      <label className="form-label">Player Name</label>
-                      <input type="text" value={name} onChange={(e)=>setName(e.target.value)} className="form-input" placeholder="Ma Long" required />
+                      <label className="form-label">Player Name *</label>
+                      <input type="text" required className="form-input" value={name} onChange={(e) => setName(e.target.value)} />
                     </div>
                     <div>
-                      <label className="form-label">Rank Number</label>
-                      <input type="number" min="1" value={rank} onChange={(e)=>setRank(e.target.value)} className="form-input" required />
+                      <label className="form-label">Club Rank # *</label>
+                      <input type="number" required min="1" className="form-input" value={rank} onChange={(e) => setRank(e.target.value)} />
                     </div>
                   </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
                     <div>
-                      <label className="form-label">Playing Style</label>
-                      <select value={playingStyle} onChange={(e)=>setPlayingStyle(e.target.value)} className="form-input">
+                      <label className="form-label">Playing Style *</label>
+                      <select className="form-input" value={playingStyle} onChange={(e) => setPlayingStyle(e.target.value)}>
                         <option value="Attack">Attack</option>
                         <option value="Offensive">Offensive</option>
                         <option value="Defense">Defense</option>
@@ -745,237 +847,109 @@ const AdminDashboard = () => {
                       </select>
                     </div>
                     <div>
-                      <label className="form-label">Playing Hand</label>
-                      <select value={playingHand} onChange={(e)=>setPlayingHand(e.target.value)} className="form-input">
+                      <label className="form-label">Playing Hand *</label>
+                      <select className="form-input" value={playingHand} onChange={(e) => setPlayingHand(e.target.value)}>
                         <option value="Right Hand">Right Hand</option>
                         <option value="Left Hand">Left Hand</option>
                       </select>
                     </div>
-                    <div>
-                      <label className="form-label">Country</label>
-                      <input type="text" value={country} onChange={(e)=>setCountry(e.target.value)} className="form-input" placeholder="China" />
-                    </div>
                   </div>
 
                   <div>
-                    <label className="form-label">Player Achievements (One item per line)</label>
-                    <textarea value={achievementsInput} onChange={(e)=>setAchievementsInput(e.target.value)} className="form-input" rows="3" placeholder="Gold Medal - Tokyo 2020 Olympics&#10;World Cup Winner 2023" />
+                    <label className="form-label">Country</label>
+                    <input type="text" className="form-input" value={country} onChange={(e) => setCountry(e.target.value)} />
                   </div>
-
-                  <div>
-                    <label className="form-label">Biography / Description</label>
-                    <textarea value={biography} onChange={(e)=>setBiography(e.target.value)} className="form-input" rows="5" placeholder="Write a short summary about the player..." />
-                  </div>
-                </div>
+                </>
               )}
 
-              {/* TAB: EQUIPMENT SHEET */}
               {formTab === 'equipment' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                  
-                  {/* Blade settings */}
-                  <div style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '16px' }}>
-                    <h4 style={{ color: '#ffffff', marginBottom: '10px' }}>Blade Details</h4>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                      <div>
-                        <label className="form-label">Brand</label>
-                        <input type="text" value={bladeBrand} onChange={(e)=>setBladeBrand(e.target.value)} className="form-input" placeholder="Butterfly" />
-                      </div>
-                      <div>
-                        <label className="form-label">Model</label>
-                        <input type="text" value={bladeModel} onChange={(e)=>setBladeModel(e.target.value)} className="form-input" placeholder="Viscaria FL" />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Forehand Rubber settings */}
-                  <div style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '16px' }}>
-                    <h4 style={{ color: '#ef4444', marginBottom: '10px' }}>Forehand Rubber</h4>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginBottom: '12px' }}>
-                      <div>
-                        <label className="form-label">Brand</label>
-                        <input type="text" value={forehandBrand} onChange={(e)=>setForehandBrand(e.target.value)} className="form-input" placeholder="DHS" />
-                      </div>
-                      <div>
-                        <label className="form-label">Model</label>
-                        <input type="text" value={forehandModel} onChange={(e)=>setForehandModel(e.target.value)} className="form-input" placeholder="Hurricane 3 National" />
-                      </div>
-                      <div>
-                        <label className="form-label">Sponge Thickness</label>
-                        <input type="text" value={forehandSponge} onChange={(e)=>setForehandSponge(e.target.value)} className="form-input" placeholder="2.1mm / 40°" />
-                      </div>
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                      <div>
-                        <label className="form-label">Speed Metric (0 to 10): {forehandSpeed}</label>
-                        <input type="range" min="0" max="10" step="0.5" value={forehandSpeed} onChange={(e)=>setForehandSpeed(Number(e.target.value))} style={{ width: '100%', accentColor: '#2563eb' }} />
-                      </div>
-                      <div>
-                        <label className="form-label">Spin Metric (0 to 10): {forehandSpin}</label>
-                        <input type="range" min="0" max="10" step="0.5" value={forehandSpin} onChange={(e)=>setForehandSpin(Number(e.target.value))} style={{ width: '100%', accentColor: '#2563eb' }} />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Backhand Rubber settings */}
-                  <div>
-                    <h4 style={{ color: '#0ea5e9', marginBottom: '10px' }}>Backhand Rubber</h4>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginBottom: '12px' }}>
-                      <div>
-                        <label className="form-label">Brand</label>
-                        <input type="text" value={backhandBrand} onChange={(e)=>setBackhandBrand(e.target.value)} className="form-input" placeholder="Butterfly" />
-                      </div>
-                      <div>
-                        <label className="form-label">Model</label>
-                        <input type="text" value={backhandModel} onChange={(e)=>setBackhandModel(e.target.value)} className="form-input" placeholder="Tenergy 05" />
-                      </div>
-                      <div>
-                        <label className="form-label">Sponge Thickness</label>
-                        <input type="text" value={backhandSponge} onChange={(e)=>setBackhandSponge(e.target.value)} className="form-input" placeholder="2.1mm" />
-                      </div>
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                      <div>
-                        <label className="form-label">Speed Metric (0 to 10): {backhandSpeed}</label>
-                        <input type="range" min="0" max="10" step="0.5" value={backhandSpeed} onChange={(e)=>setBackhandSpeed(Number(e.target.value))} style={{ width: '100%', accentColor: '#2563eb' }} />
-                      </div>
-                      <div>
-                        <label className="form-label">Spin Metric (0 to 10): {backhandSpin}</label>
-                        <input type="range" min="0" max="10" step="0.5" value={backhandSpin} onChange={(e)=>setBackhandSpin(Number(e.target.value))} style={{ width: '100%', accentColor: '#2563eb' }} />
-                      </div>
-                    </div>
-                  </div>
-
-                </div>
-              )}
-
-              {/* TAB: MEDIA UPLOADS */}
-              {formTab === 'media' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                  
+                <>
                   {/* Avatar Upload */}
-                  <div style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '20px' }}>
-                    <label className="form-label">Main Profile Avatar</label>
-                    <input type="file" accept="image/*" onChange={(e)=>setAvatarFile(e.target.files[0])} style={{ display: 'none' }} id="avatar-file" />
-                    <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-                      <label htmlFor="avatar-file" className="btn btn-secondary" style={{ cursor: 'pointer' }}><FaUpload /> Upload Image</label>
-                      {avatarFile && <span style={{ fontSize: '0.85rem', color: '#10b981' }}>{avatarFile.name}</span>}
-                    </div>
-                    {avatarPreview && !deleteAvatar && (
-                      <div style={{ marginTop: '12px', display: 'flex', alignItems: 'center', gap: '16px' }}>
-                        <img src={avatarPreview} alt="avatar" style={{ width: '60px', height: '75px', objectFit: 'cover', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.1)' }} />
-                        <button type="button" onClick={()=>setDeleteAvatar(true)} className="btn btn-danger" style={{ padding: '4px 8px', fontSize: '0.75rem' }}><FaTrash /> Remove</button>
-                      </div>
-                    )}
-                    {deleteAvatar && <span style={{ fontSize: '0.8rem', color: '#ef4444' }}>Avatar photo will be removed on save</span>}
-                  </div>
-
-                  {/* Promo Video Settings */}
-                  <div style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '20px' }}>
-                    <label className="form-label">Promotional Video Setup</label>
-                    <div style={{ display: 'flex', gap: '16px', marginBottom: '12px' }}>
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.9rem' }}>
-                        <input type="radio" checked={videoType === 'external'} onChange={()=>setVideoType('external')} style={{ accentColor: '#2563eb' }} />
-                        External URL (YouTube / Vimeo)
-                      </label>
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.9rem' }}>
-                        <input type="radio" checked={videoType === 'local'} onChange={()=>setVideoType('local')} style={{ accentColor: '#2563eb' }} />
-                        Upload Video File
-                      </label>
-                    </div>
-
-                    {videoType === 'external' ? (
-                      <div>
-                        <label className="form-label">Link Address</label>
-                        <input type="url" value={videoUrlInput} onChange={(e)=>setVideoUrlInput(e.target.value)} className="form-input" placeholder="https://www.youtube.com/watch?v=..." />
-                      </div>
-                    ) : (
-                      <div>
-                        <input type="file" accept="video/*" onChange={(e)=>setVideoFile(e.target.files[0])} style={{ display: 'none' }} id="player-video" />
-                        <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-                          <label htmlFor="player-video" className="btn btn-secondary" style={{ cursor: 'pointer' }}><FaUpload /> Upload Video</label>
-                          {videoFile && <span style={{ fontSize: '0.85rem', color: '#10b981' }}>{videoFile.name}</span>}
-                        </div>
-                        {editingPlayerId && !deleteVideo && (
-                          <div style={{ marginTop: '12px' }}>
-                            <button type="button" onClick={()=>setDeleteVideo(true)} className="btn btn-danger" style={{ padding: '4px 8px', fontSize: '0.75rem' }}><FaTrash /> Remove Video</button>
-                          </div>
-                        )}
-                        {deleteVideo && <span style={{ fontSize: '0.8rem', color: '#ef4444' }}>Video will be deleted on save</span>}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Multi-Photo Gallery Upload */}
                   <div>
-                    <label className="form-label">Gallery Images</label>
-                    <input type="file" accept="image/*" multiple onChange={(e)=>setGalleryFiles(Array.from(e.target.files))} style={{ display: 'none' }} id="gallery-files" />
-                    <div style={{ display: 'flex', gap: '16px', alignItems: 'center', marginBottom: '16px' }}>
-                      <label htmlFor="gallery-files" className="btn btn-secondary" style={{ cursor: 'pointer' }}><FaUpload /> Upload Images (Multi)</label>
-                      {galleryFiles.length > 0 && <span style={{ fontSize: '0.85rem', color: '#10b981' }}>{galleryFiles.length} files selected</span>}
-                    </div>
-
-                    {existingGallery.length > 0 && (
-                      <div>
-                        <span style={{ fontSize: '0.8rem', color: '#94a3b8', display: 'block', marginBottom: '8px' }}>Existing Gallery Images (Click trash to delete from server):</span>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
-                          {existingGallery.map((img, idx) => {
-                            const imgUrl = img.startsWith('http') ? img : `${api.defaults.baseURL || ''}${img}`;
-                            return (
-                              <div key={idx} style={{ position: 'relative', width: '80px', height: '60px', borderRadius: '4px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)' }}>
-                                <img src={imgUrl} alt="existing gallery" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                <button
-                                  type="button"
-                                  onClick={() => handleRemoveExistingGalleryImage(img)}
-                                  style={{
-                                    position: 'absolute',
-                                    top: '4px',
-                                    right: '4px',
-                                    background: 'rgba(239, 68, 68, 0.9)',
-                                    border: 'none',
-                                    color: '#ffffff',
-                                    borderRadius: '50%',
-                                    width: '20px',
-                                    height: '20px',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    cursor: 'pointer',
-                                    fontSize: '10px'
-                                  }}
-                                >
-                                  <FaTimes />
-                                </button>
-                              </div>
-                            );
-                          })}
+                    <label className="form-label">Player Avatar / Photo</label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                      {avatarPreview && !deleteAvatar && (
+                        <div style={{ position: 'relative', width: '60px', height: '60px', borderRadius: '50%', overflow: 'hidden', border: '2px solid var(--color-primary)' }}>
+                          <img src={avatarPreview.startsWith('data:') || avatarPreview.startsWith('http') ? avatarPreview : `${api.defaults.baseURL || ''}${avatarPreview}`} alt="Avatar preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                         </div>
+                      )}
+                      <div style={{ flexGrow: 1 }}>
+                        <input type="file" accept="image/*" className="form-input" onChange={(e) => {
+                          if (e.target.files[0]) {
+                            setAvatarFile(e.target.files[0]);
+                            setAvatarPreview(URL.createObjectURL(e.target.files[0]));
+                            setDeleteAvatar(false);
+                          }
+                        }} />
                       </div>
-                    )}
+                      {avatarPreview && !deleteAvatar && (
+                        <button type="button" className="btn btn-danger" style={{ padding: '8px' }} onClick={() => { setDeleteAvatar(true); setAvatarFile(null); }}>
+                          <FaTrash />
+                        </button>
+                      )}
+                    </div>
                   </div>
 
-                </div>
+                  {/* Blade */}
+                  <div>
+                    <h4 style={{ fontSize: '1rem', color: 'var(--color-primary)', marginBottom: '10px' }}>Blade</h4>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+                      <div>
+                        <label className="form-label">Brand</label>
+                        <input type="text" className="form-input" value={bladeBrand} onChange={(e) => setBladeBrand(e.target.value)} placeholder="e.g. Butterfly" />
+                      </div>
+                      <div>
+                        <label className="form-label">Model</label>
+                        <input type="text" className="form-input" value={bladeModel} onChange={(e) => setBladeModel(e.target.value)} placeholder="e.g. Viscaria" />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Forehand Rubber */}
+                  <div>
+                    <h4 style={{ fontSize: '1rem', color: 'var(--color-secondary)', marginBottom: '10px' }}>Forehand Rubber</h4>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+                      <div>
+                        <label className="form-label">Brand & Model</label>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <input type="text" className="form-input" value={forehandBrand} onChange={(e) => setForehandBrand(e.target.value)} placeholder="Brand" style={{ flex: 1 }} />
+                          <input type="text" className="form-input" value={forehandModel} onChange={(e) => setForehandModel(e.target.value)} placeholder="Model" style={{ flex: 1 }} />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="form-label">Thickness</label>
+                        <input type="text" className="form-input" value={forehandSponge} onChange={(e) => setForehandSponge(e.target.value)} placeholder="e.g. 2.1mm or MAX" />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Backhand Rubber */}
+                  <div>
+                    <h4 style={{ fontSize: '1rem', color: 'var(--color-tertiary)', marginBottom: '10px' }}>Backhand Rubber</h4>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+                      <div>
+                        <label className="form-label">Brand & Model</label>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <input type="text" className="form-input" value={backhandBrand} onChange={(e) => setBackhandBrand(e.target.value)} placeholder="Brand" style={{ flex: 1 }} />
+                          <input type="text" className="form-input" value={backhandModel} onChange={(e) => setBackhandModel(e.target.value)} placeholder="Model" style={{ flex: 1 }} />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="form-label">Thickness</label>
+                        <input type="text" className="form-input" value={backhandSponge} onChange={(e) => setBackhandSponge(e.target.value)} placeholder="e.g. 2.1mm or MAX" />
+                      </div>
+                    </div>
+                  </div>
+                </>
               )}
 
-              {/* Submit Buttons */}
-              <div style={{ display: 'flex', gap: '16px', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '20px', justifyContent: 'flex-end' }}>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '20px' }}>
                 <button type="button" onClick={() => setIsFormOpen(false)} className="btn btn-secondary">Cancel</button>
-                <button type="submit" disabled={saving} className="btn btn-primary">
-                  {saving ? 'Saving...' : <><FaCheck /> Save Player</>}
-                </button>
+                <button type="submit" disabled={saving} className="btn btn-primary">{saving ? 'Saving...' : 'Save Player'}</button>
               </div>
-
             </form>
           </div>
         </div>
-      )}
-
-      {toast && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          onClose={() => setToast(null)}
-        />
       )}
     </div>
   );

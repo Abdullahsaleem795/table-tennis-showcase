@@ -9,6 +9,7 @@ import Home from './pages/Home';
 import Players from './pages/Players';
 import PlayerProfile from './pages/PlayerProfile';
 import Rankings from './pages/Rankings';
+import Tournament from './pages/Tournament';
 import About from './pages/About';
 import Contact from './pages/Contact';
 import AdminLogin from './pages/AdminLogin';
@@ -27,6 +28,7 @@ const App = () => {
               <Route path="/players" element={<Players />} />
               <Route path="/player/:id" element={<PlayerProfile />} />
               <Route path="/rankings" element={<Rankings />} />
+              <Route path="/tournament" element={<Tournament />} />
               <Route path="/about" element={<About />} />
               <Route path="/contact" element={<Contact />} />
               <Route path="/admin/login" element={<AdminLogin />} />

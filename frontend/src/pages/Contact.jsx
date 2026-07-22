@@ -49,11 +49,11 @@ const Contact = () => {
       <div className="section-padding container-width">
         {/* Page Header */}
         <div style={{ textAlign: 'center', marginBottom: '56px' }}>
-          <span style={{ color: '#2563eb', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', fontSize: '0.9rem' }}>Get In Touch</span>
+          <span style={{ color: 'var(--color-primary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', fontSize: '0.9rem' }}>Get In Touch</span>
           <h1 style={{ fontSize: '2.5rem', marginTop: '4px', textTransform: 'uppercase' }} className="text-gradient">
             Contact Our Team
           </h1>
-          <p style={{ color: '#94a3b8', maxWidth: '600px', margin: '12px auto 0', fontSize: '0.95rem' }}>
+          <p style={{ color: 'var(--color-on-surface-variant)', maxWidth: '600px', margin: '12px auto 0', fontSize: '0.95rem' }}>
             Have questions about training schedules, sponsorships, or ranking qualifications? Drop us a line below.
           </p>
         </div>
@@ -63,31 +63,31 @@ const Contact = () => {
           
           {/* Column 1: Contact info card */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
-            <div className="glass-panel" style={{ padding: '32px' }}>
-              <h2 style={{ fontSize: '1.4rem', color: '#ffffff', marginBottom: '24px', fontFamily: "'Outfit', sans-serif" }}>Club Information</h2>
+            <div className="m3-card" style={{ padding: '32px' }}>
+              <h2 style={{ fontSize: '1.4rem', color: 'var(--color-on-surface)', marginBottom: '24px', fontFamily: "var(--font-family-heading)" }}>Club Information</h2>
               
-              <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '24px', color: '#cbd5e1', fontSize: '0.95rem' }}>
+              <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '24px', color: 'var(--color-on-surface)', fontSize: '0.95rem' }}>
                 <li style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
-                  <FaMapMarkerAlt style={{ color: '#2563eb', fontSize: '20px', marginTop: '4px', flexShrink: 0 }} />
+                  <FaMapMarkerAlt style={{ color: 'var(--color-primary)', fontSize: '20px', marginTop: '4px', flexShrink: 0 }} />
                   <div>
-                    <h4 style={{ color: '#ffffff', fontFamily: "'Outfit', sans-serif", fontSize: '0.95rem', marginBottom: '2px' }}>Location</h4>
-                    <p style={{ color: '#94a3b8' }}>{location}</p>
+                    <h4 style={{ color: 'var(--color-on-surface)', fontFamily: "var(--font-family-heading)", fontSize: '0.95rem', marginBottom: '2px' }}>Location</h4>
+                    <p style={{ color: 'var(--color-on-surface-variant)' }}>{location}</p>
                   </div>
                 </li>
                 
                 <li style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
-                  <FaPhone style={{ color: '#2563eb', fontSize: '18px', marginTop: '4px', flexShrink: 0 }} />
+                  <FaPhone style={{ color: 'var(--color-primary)', fontSize: '18px', marginTop: '4px', flexShrink: 0 }} />
                   <div>
-                    <h4 style={{ color: '#ffffff', fontFamily: "'Outfit', sans-serif", fontSize: '0.95rem', marginBottom: '2px' }}>Phone Number</h4>
-                    <p style={{ color: '#94a3b8' }}>{contactPhone}</p>
+                    <h4 style={{ color: 'var(--color-on-surface)', fontFamily: "var(--font-family-heading)", fontSize: '0.95rem', marginBottom: '2px' }}>Phone Number</h4>
+                    <p style={{ color: 'var(--color-on-surface-variant)' }}>{contactPhone}</p>
                   </div>
                 </li>
 
                 <li style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
-                  <FaEnvelope style={{ color: '#2563eb', fontSize: '18px', marginTop: '4px', flexShrink: 0 }} />
+                  <FaEnvelope style={{ color: 'var(--color-primary)', fontSize: '18px', marginTop: '4px', flexShrink: 0 }} />
                   <div>
-                    <h4 style={{ color: '#ffffff', fontFamily: "'Outfit', sans-serif", fontSize: '0.95rem', marginBottom: '2px' }}>Email Address</h4>
-                    <a href={`mailto:${contactEmail}`} style={{ color: '#94a3b8', transition: 'color 0.2s' }} onMouseEnter={(e)=>e.target.style.color='#ffffff'} onMouseLeave={(e)=>e.target.style.color='#94a3b8'}>
+                    <h4 style={{ color: 'var(--color-on-surface)', fontFamily: "var(--font-family-heading)", fontSize: '0.95rem', marginBottom: '2px' }}>Email Address</h4>
+                    <a href={`mailto:${contactEmail}`} style={{ color: 'var(--color-on-surface-variant)', transition: 'color 0.2s' }} onMouseEnter={(e)=>e.target.style.color='var(--color-on-surface)'} onMouseLeave={(e)=>e.target.style.color='var(--color-on-surface-variant)'}>
                       {contactEmail}
                     </a>
                   </div>
@@ -96,19 +96,19 @@ const Contact = () => {
             </div>
 
             {/* Social media connections */}
-            <div className="glass-panel" style={{ padding: '24px', textAlign: 'center' }}>
-              <h4 style={{ color: '#ffffff', fontFamily: "'Outfit', sans-serif", fontSize: '1rem', marginBottom: '16px', textTransform: 'uppercase' }}>Social Connect</h4>
+            <div className="m3-card" style={{ padding: '24px', textAlign: 'center' }}>
+              <h4 style={{ color: 'var(--color-on-surface)', fontFamily: "var(--font-family-heading)", fontSize: '1rem', marginBottom: '16px', textTransform: 'uppercase' }}>Social Connect</h4>
               <div style={{ display: 'flex', gap: '20px', justifyContent: 'center' }}>
-                <a href={facebook} target="_blank" rel="noopener noreferrer" style={{ color: '#94a3b8', fontSize: '24px', transition: 'color 0.2s' }} onMouseEnter={(e)=>e.target.style.color='#2563eb'} onMouseLeave={(e)=>e.target.style.color='#94a3b8'}><FaFacebook /></a>
-                <a href={instagram} target="_blank" rel="noopener noreferrer" style={{ color: '#94a3b8', fontSize: '24px', transition: 'color 0.2s' }} onMouseEnter={(e)=>e.target.style.color='#ea4c89'} onMouseLeave={(e)=>e.target.style.color='#94a3b8'}><FaInstagram /></a>
-                <a href={youtube} target="_blank" rel="noopener noreferrer" style={{ color: '#94a3b8', fontSize: '24px', transition: 'color 0.2s' }} onMouseEnter={(e)=>e.target.style.color='#ef4444'} onMouseLeave={(e)=>e.target.style.color='#94a3b8'}><FaYoutube /></a>
+                <a href={facebook} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-on-surface-variant)', fontSize: '24px', transition: 'color 0.2s' }} onMouseEnter={(e)=>e.target.style.color='var(--color-primary)'} onMouseLeave={(e)=>e.target.style.color='var(--color-on-surface-variant)'}><FaFacebook /></a>
+                <a href={instagram} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-on-surface-variant)', fontSize: '24px', transition: 'color 0.2s' }} onMouseEnter={(e)=>e.target.style.color='#ea4c89'} onMouseLeave={(e)=>e.target.style.color='var(--color-on-surface-variant)'}><FaInstagram /></a>
+                <a href={youtube} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-on-surface-variant)', fontSize: '24px', transition: 'color 0.2s' }} onMouseEnter={(e)=>e.target.style.color='var(--color-error)'} onMouseLeave={(e)=>e.target.style.color='var(--color-on-surface-variant)'}><FaYoutube /></a>
               </div>
             </div>
           </div>
 
           {/* Column 2: Contact Form */}
-          <div className="glass-panel" style={{ padding: '32px' }}>
-            <h2 style={{ fontSize: '1.4rem', color: '#ffffff', marginBottom: '24px', fontFamily: "'Outfit', sans-serif" }}>Send Message</h2>
+          <div className="m3-card" style={{ padding: '32px' }}>
+            <h2 style={{ fontSize: '1.4rem', color: 'var(--color-on-surface)', marginBottom: '24px', fontFamily: "var(--font-family-heading)" }}>Send Message</h2>
             
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <div>

@@ -22,7 +22,7 @@ const NotFound = () => {
         transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
         style={{
           fontSize: '80px',
-          color: '#2563eb',
+          color: 'var(--color-primary)',
           marginBottom: '24px',
           filter: 'drop-shadow(0 0 20px rgba(37,99,235,0.4))'
         }}
@@ -32,7 +32,7 @@ const NotFound = () => {
 
       <h1 style={{
         fontSize: 'clamp(4rem, 10vw, 8rem)',
-        fontFamily: "'Outfit', sans-serif",
+        fontFamily: "var(--font-family-heading)",
         lineHeight: 1,
         fontWeight: 900,
         margin: 0
@@ -42,8 +42,8 @@ const NotFound = () => {
 
       <h2 style={{
         fontSize: '1.75rem',
-        fontFamily: "'Outfit', sans-serif",
-        color: '#ffffff',
+        fontFamily: "var(--font-family-heading)",
+        color: 'var(--color-on-surface)',
         marginTop: '12px',
         marginBottom: '16px'
       }}>
@@ -51,7 +51,7 @@ const NotFound = () => {
       </h2>
 
       <p style={{
-        color: '#94a3b8',
+        color: 'var(--color-on-surface-variant)',
         fontSize: '1rem',
         maxWidth: '450px',
         lineHeight: '1.6',
