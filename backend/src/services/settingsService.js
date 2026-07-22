@@ -65,9 +65,13 @@ module.exports = {
         // Remove undefined fields
         Object.keys(payload).forEach(key => payload[key] === undefined && delete payload[key]);
 
+        // Fetch existing to merge
+        const { data: existing } = await supabase.from('settings').select('*').eq('id', 'global_settings').maybeSingle();
+        const mergedPayload = { ...existing, ...payload };
+
         const { data, error } = await supabase
           .from('settings')
-          .upsert([payload])
+          .upsert([mergedPayload])
           .select()
           .single();
 

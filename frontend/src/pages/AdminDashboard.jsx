@@ -194,7 +194,7 @@ const AdminDashboard = () => {
     e.preventDefault();
     setSaving(true);
     try {
-      await api.post('/settings', {
+      await api.put('/settings', {
         contactEmail: siteContactEmail,
         contactPhone: siteContactPhone,
         location: siteLocation
