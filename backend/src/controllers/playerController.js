@@ -6,7 +6,7 @@ const playerService = require('../services/playerService');
 function fileToBase64(file) {
   if (!file) return '';
   try {
-    const fileData = fs.readFileSync(file.path);
+    const fileData = file.buffer || fs.readFileSync(file.path);
     const base64String = fileData.toString('base64');
     return `data:${file.mimetype};base64,${base64String}`;
   } catch (err) {

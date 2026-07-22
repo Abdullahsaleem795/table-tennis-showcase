@@ -24,7 +24,7 @@ module.exports = {
         const { data, error } = await supabase
           .from('settings')
           .select('*')
-          .limit(1)
+          .eq('id', 'global_settings')
           .maybeSingle();
 
         if (!error && data) return formatSettings(data);

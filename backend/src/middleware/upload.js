@@ -14,7 +14,7 @@ try {
 }
 
 // Storage configuration
-const storage = multer.diskStorage({
+const storage = process.env.VERCEL ? multer.memoryStorage() : multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, UPLOADS_DIR);
   },
