@@ -8,32 +8,36 @@ const JSON_DB_PATH = path.join(JSON_DB_DIR, 'db.json');
 
 // Initialize the local JSON file database structure if needed
 function initLocalDB() {
-  if (!fs.existsSync(JSON_DB_DIR)) {
-    fs.mkdirSync(JSON_DB_DIR, { recursive: true });
-  }
-  
-  if (!fs.existsSync(JSON_DB_PATH)) {
-    const defaultData = {
-      users: [],
-      players: [],
-      settings: {
-        websiteName: "Championship Table Tennis Club",
-        logoUrl: "",
-        bannerUrl: "",
-        aboutContent: "Welcome to our premier table tennis showcase. We feature elite table tennis players, highlighting their rankings, specialized equipment, styles, and training footage.",
-        contactEmail: "info@championshiptt.com",
-        contactPhone: "+1 (555) 123-4567",
-        location: "123 Ping Pong Way, Sports City",
-        socialLinks: {
-          facebook: "https://facebook.com",
-          instagram: "https://instagram.com",
-          youtube: "https://youtube.com"
-        },
-        footerText: "© 2026 Championship Table Tennis Club. All rights reserved."
-      }
-    };
-    fs.writeFileSync(JSON_DB_PATH, JSON.stringify(defaultData, null, 2), 'utf8');
-    console.log("Initialized local JSON Database at:", JSON_DB_PATH);
+  try {
+    if (!fs.existsSync(JSON_DB_DIR)) {
+      fs.mkdirSync(JSON_DB_DIR, { recursive: true });
+    }
+    
+    if (!fs.existsSync(JSON_DB_PATH)) {
+      const defaultData = {
+        users: [],
+        players: [],
+        settings: {
+          websiteName: "Championship Table Tennis Club",
+          logoUrl: "",
+          bannerUrl: "",
+          aboutContent: "Welcome to our premier table tennis showcase. We feature elite table tennis players, highlighting their rankings, specialized equipment, styles, and training footage.",
+          contactEmail: "info@championshiptt.com",
+          contactPhone: "+1 (555) 123-4567",
+          location: "123 Ping Pong Way, Sports City",
+          socialLinks: {
+            facebook: "https://facebook.com",
+            instagram: "https://instagram.com",
+            youtube: "https://youtube.com"
+          },
+          footerText: "© 2026 Championship Table Tennis Club. All rights reserved."
+        }
+      };
+      fs.writeFileSync(JSON_DB_PATH, JSON.stringify(defaultData, null, 2), 'utf8');
+      console.log("Initialized local JSON Database at:", JSON_DB_PATH);
+    }
+  } catch (err) {
+    console.warn("WARNING: Could not initialize local DB (expected in read-only environments like Vercel).");
   }
 }
 
