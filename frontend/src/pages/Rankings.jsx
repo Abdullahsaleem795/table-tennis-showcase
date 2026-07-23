@@ -120,7 +120,7 @@ const Rankings = () => {
                             justifyContent: 'center'
                           }}>
                             {avatar ? (
-                              <img src={avatar} alt={player.name} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top center' }} />
+                              <img src={avatar} alt={player.name} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 15%' }} />
                             ) : (
                               <span style={{ fontSize: '18px' }}>👤</span>
                             )}

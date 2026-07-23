@@ -676,7 +676,7 @@ const AdminDashboard = () => {
                     <td style={{ padding: '14px 16px' }}>
                       <div style={{ width: '56px', height: '56px', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--color-outline)', backgroundColor: 'var(--color-surface-container-high)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         {p.avatarUrl ? (
-                          <img src={p.avatarUrl.startsWith('http') || p.avatarUrl.startsWith('data:') ? p.avatarUrl : `${api.defaults.baseURL || ''}${p.avatarUrl}`} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top center' }} />
+                          <img src={p.avatarUrl.startsWith('http') || p.avatarUrl.startsWith('data:') ? p.avatarUrl : `${api.defaults.baseURL || ''}${p.avatarUrl}`} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 15%' }} />
                         ) : (
                           <span style={{ fontSize: '16px' }}>👤</span>
                         )}
@@ -1077,7 +1077,7 @@ const AdminDashboard = () => {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                       {avatarPreview && !deleteAvatar && (
                         <div style={{ position: 'relative', width: '60px', height: '60px', borderRadius: '50%', overflow: 'hidden', border: '2px solid var(--color-primary)' }}>
-                          <img src={avatarPreview.startsWith('data:') || avatarPreview.startsWith('http') || avatarPreview.startsWith('blob:') ? avatarPreview : `${api.defaults.baseURL || ''}${avatarPreview}`} alt="Avatar preview" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top center' }} />
+                          <img src={avatarPreview.startsWith('data:') || avatarPreview.startsWith('http') || avatarPreview.startsWith('blob:') ? avatarPreview : `${api.defaults.baseURL || ''}${avatarPreview}`} alt="Avatar preview" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 15%' }} />
                         </div>
                       )}
                       <div style={{ flexGrow: 1 }}>

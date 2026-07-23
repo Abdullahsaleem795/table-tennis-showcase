@@ -66,11 +66,11 @@ const PlayerCard = ({ player }) => {
       {/* Photo Container */}
       <div style={{
         width: '100%',
-        height: '220px',
+        height: '200px',
         borderRadius: 'var(--radius-sm)',
         overflow: 'hidden',
         position: 'relative',
-        backgroundColor: 'var(--color-surface)',
+        backgroundColor: 'var(--color-surface-container)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -84,7 +84,7 @@ const PlayerCard = ({ player }) => {
               width: '100%',
               height: '100%',
               objectFit: 'cover',
-              objectPosition: 'top center',
+              objectPosition: 'center 15%',
               transition: 'transform 0.3s ease'
             }}
             onMouseEnter={(e) => e.target.style.transform = 'scale(1.04)'}

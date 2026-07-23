@@ -202,7 +202,7 @@ const PlayerProfile = () => {
             boxShadow: '0 8px 32px rgba(0,0,0,0.4)'
           }}>
             {avatarUrl ? (
-              <img src={avatarUrl} alt={player.name} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top center' }} />
+              <img src={avatarUrl} alt={player.name} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 15%' }} />
             ) : (
               <span style={{ fontSize: '100px', color: 'var(--color-surface-container-high)' }}>👤</span>
             )}
