@@ -870,7 +870,7 @@ const AdminDashboard = () => {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                       {avatarPreview && !deleteAvatar && (
                         <div style={{ position: 'relative', width: '60px', height: '60px', borderRadius: '50%', overflow: 'hidden', border: '2px solid var(--color-primary)' }}>
-                          <img src={avatarPreview.startsWith('data:') || avatarPreview.startsWith('http') ? avatarPreview : `${api.defaults.baseURL || ''}${avatarPreview}`} alt="Avatar preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          <img src={avatarPreview.startsWith('data:') || avatarPreview.startsWith('http') || avatarPreview.startsWith('blob:') ? avatarPreview : `${api.defaults.baseURL || ''}${avatarPreview}`} alt="Avatar preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                         </div>
                       )}
                       <div style={{ flexGrow: 1 }}>

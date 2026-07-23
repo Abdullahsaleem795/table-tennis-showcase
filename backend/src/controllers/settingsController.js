@@ -59,7 +59,7 @@ module.exports = {
           deleteLocalFile(existingSettings.logoUrl);
         }
         updates.logoUrl = fileToBase64(file);
-        fs.unlinkSync(file.path);
+        if (file.path) fs.unlinkSync(file.path);
       } else if (req.body.deleteLogo === 'true') {
         if (existingSettings.logoUrl && existingSettings.logoUrl.startsWith('/uploads/')) {
           deleteLocalFile(existingSettings.logoUrl);
@@ -74,7 +74,7 @@ module.exports = {
           deleteLocalFile(existingSettings.bannerUrl);
         }
         updates.bannerUrl = fileToBase64(file);
-        fs.unlinkSync(file.path);
+        if (file.path) fs.unlinkSync(file.path);
       } else if (req.body.deleteBanner === 'true') {
         if (existingSettings.bannerUrl && existingSettings.bannerUrl.startsWith('/uploads/')) {
           deleteLocalFile(existingSettings.bannerUrl);
@@ -86,8 +86,8 @@ module.exports = {
       res.json(updated);
     } catch (err) {
       if (req.files) {
-        if (req.files.logo && req.files.logo[0]) fs.unlink(req.files.logo[0].path, () => {});
-        if (req.files.banner && req.files.banner[0]) fs.unlink(req.files.banner[0].path, () => {});
+        if (req.files.logo && req.files.logo[0]) if (req.files.logo[0].path) fs.unlink(req.files.logo[0].path, () => {});
+        if (req.files.banner && req.files.banner[0]) if (req.files.banner[0].path) fs.unlink(req.files.banner[0].path, () => {});
       }
       next(err);
     }

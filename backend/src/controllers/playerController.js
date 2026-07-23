@@ -101,7 +101,7 @@ module.exports = {
         const file = req.files.avatar[0];
         avatarUrl = fileToBase64(file);
         // Delete local temp file
-        fs.unlinkSync(file.path);
+        if (file.path) fs.unlinkSync(file.path);
       }
 
       // Handle gallery files (Base64)
@@ -111,7 +111,7 @@ module.exports = {
           const base64Str = fileToBase64(file);
           if (base64Str) gallery.push(base64Str);
           // Delete local temp file
-          fs.unlinkSync(file.path);
+          if (file.path) fs.unlinkSync(file.path);
         });
       }
 
@@ -154,10 +154,10 @@ module.exports = {
     } catch (err) {
       // Clean up local temp files on error
       if (req.files) {
-        if (req.files.avatar && req.files.avatar[0]) fs.unlink(req.files.avatar[0].path, () => {});
-        if (req.files.video && req.files.video[0]) fs.unlink(req.files.video[0].path, () => {});
+        if (req.files.avatar && req.files.avatar[0]) if (req.files.avatar[0].path) fs.unlink(req.files.avatar[0].path, () => {});
+        if (req.files.video && req.files.video[0]) if (req.files.video[0].path) fs.unlink(req.files.video[0].path, () => {});
         if (req.files.gallery) {
-          req.files.gallery.forEach(f => fs.unlink(f.path, () => {}));
+          req.files.gallery.forEach(f => { if (f.path) fs.unlink(f.path, () => {}); });
         }
       }
       next(err);
@@ -209,7 +209,7 @@ module.exports = {
           deleteLocalFile(existingPlayer.avatarUrl);
         }
         updates.avatarUrl = fileToBase64(file);
-        fs.unlinkSync(file.path);
+        if (file.path) fs.unlinkSync(file.path);
       } else if (req.body.deleteAvatar === 'true') {
         if (existingPlayer.avatarUrl && existingPlayer.avatarUrl.startsWith('/uploads/')) {
           deleteLocalFile(existingPlayer.avatarUrl);
@@ -238,7 +238,7 @@ module.exports = {
         req.files.gallery.forEach(file => {
           const base64Str = fileToBase64(file);
           if (base64Str) finalGallery.push(base64Str);
-          fs.unlinkSync(file.path);
+          if (file.path) fs.unlinkSync(file.path);
         });
       }
       updates.gallery = finalGallery;
@@ -282,10 +282,10 @@ module.exports = {
       res.json(updatedPlayer);
     } catch (err) {
       if (req.files) {
-        if (req.files.avatar && req.files.avatar[0]) fs.unlink(req.files.avatar[0].path, () => {});
-        if (req.files.video && req.files.video[0]) fs.unlink(req.files.video[0].path, () => {});
+        if (req.files.avatar && req.files.avatar[0]) if (req.files.avatar[0].path) fs.unlink(req.files.avatar[0].path, () => {});
+        if (req.files.video && req.files.video[0]) if (req.files.video[0].path) fs.unlink(req.files.video[0].path, () => {});
         if (req.files.gallery) {
-          req.files.gallery.forEach(f => fs.unlink(f.path, () => {}));
+          req.files.gallery.forEach(f => { if (f.path) fs.unlink(f.path, () => {}); });
         }
       }
       next(err);
