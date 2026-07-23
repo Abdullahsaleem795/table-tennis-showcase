@@ -70,60 +70,64 @@ function formatPlayer(p, votes = 0) {
   };
 }
 
-async function resolveRankConflicts(targetRank, excludeId = null) {
+async function resolveRankConflicts(targetRank, targetPlayerId = null) {
   targetRank = parseInt(targetRank, 10);
-  if (isNaN(targetRank) || targetRank < 1) return;
+  if (isNaN(targetRank) || targetRank < 1) targetRank = 1;
 
   if (isSupabaseConfigured()) {
     try {
-      let query = supabase.from('players').select('*').gte('rank', targetRank).order('rank', { ascending: true });
-      if (excludeId) query = query.neq('id', excludeId);
-      
-      const { data: conflictingPlayers } = await query;
-      if (conflictingPlayers && conflictingPlayers.length > 0) {
-        let currentShiftRank = targetRank;
-        for (const p of conflictingPlayers) {
-          if (p.rank === currentShiftRank) {
-            await supabase.from('players').update({ rank: currentShiftRank + 1 }).eq('id', p.id);
-            currentShiftRank++;
-          } else {
-            break;
-          }
+      const { data: allPlayers } = await supabase
+        .from('players')
+        .select('id, rank')
+        .order('rank', { ascending: true });
+
+      if (!allPlayers) return;
+
+      const otherPlayers = allPlayers.filter(p => p.id !== targetPlayerId);
+      const conflict = otherPlayers.some(p => p.rank === targetRank);
+
+      if (conflict) {
+        if (targetPlayerId) {
+          await supabase.from('players').update({ rank: 999999 }).eq('id', targetPlayerId);
+        }
+        const toShift = otherPlayers
+          .filter(p => p.rank >= targetRank)
+          .sort((a, b) => b.rank - a.rank);
+
+        for (const p of toShift) {
+          await supabase.from('players').update({ rank: p.rank + 1 }).eq('id', p.id);
         }
       }
-      return;
     } catch (e) {
       console.error("Supabase rank resolution notice:", e.message);
     }
-  }
-
-  if (dbConfig.isMongoConnected()) {
-    const query = { rank: { $gte: targetRank } };
-    if (excludeId) query._id = { $ne: excludeId };
-    const conflictingPlayers = await Player.find(query).sort({ rank: 1 });
-    let currentShiftRank = targetRank;
-    for (const p of conflictingPlayers) {
-      if (p.rank === currentShiftRank) {
-        p.rank = currentShiftRank + 1;
+  } else if (dbConfig.isMongoConnected()) {
+    const query = { rank: targetRank };
+    if (targetPlayerId) query._id = { $ne: targetPlayerId };
+    const conflict = await Player.findOne(query);
+    if (conflict) {
+      if (targetPlayerId) await Player.findByIdAndUpdate(targetPlayerId, { rank: 999999 });
+      const gteQuery = { rank: { $gte: targetRank } };
+      if (targetPlayerId) gteQuery._id = { $ne: targetPlayerId };
+      const toShift = await Player.find(gteQuery).sort({ rank: -1 });
+      for (const p of toShift) {
+        p.rank = p.rank + 1;
         await p.save();
-        currentShiftRank++;
-      } else {
-        break;
       }
     }
   } else {
     const data = dbConfig.getLocalData();
-    let players = data.players;
-    players.sort((a, b) => a.rank - b.rank);
-    let currentShiftRank = targetRank;
-    for (let i = 0; i < players.length; i++) {
-      if (excludeId && players[i]._id === excludeId) continue;
-      if (players[i].rank === currentShiftRank) {
-        players[i].rank = currentShiftRank + 1;
-        currentShiftRank++;
-      }
+    const players = data.players;
+    const conflict = players.find(p => (p._id !== targetPlayerId && p.id !== targetPlayerId) && p.rank === targetRank);
+    if (conflict) {
+      players.forEach(p => {
+        const pId = p._id || p.id;
+        if (pId !== targetPlayerId && p.rank >= targetRank) {
+          p.rank = p.rank + 1;
+        }
+      });
+      dbConfig.saveLocalData(data);
     }
-    dbConfig.saveLocalData(data);
   }
 }
 
@@ -250,8 +254,11 @@ module.exports = {
   },
 
   async update(id, playerData) {
-    if (playerData.rank) {
-      await resolveRankConflicts(playerData.rank, id);
+    if (playerData.rank !== undefined) {
+      playerData.rank = parseInt(playerData.rank, 10);
+      if (!isNaN(playerData.rank)) {
+        await resolveRankConflicts(playerData.rank, id);
+      }
     }
 
     const votesMap = await getVotesMap();
@@ -279,7 +286,10 @@ module.exports = {
           .select()
           .single();
 
-        if (!error && data) return formatPlayer(data, votesMap[id] || 0);
+        if (!error && data) {
+          return formatPlayer(data, votesMap[id] || 0);
+        }
+        if (error) console.error("Supabase update error:", error.message);
       } catch (err) {
         console.error("Supabase update player error:", err.message);
       }

@@ -348,8 +348,9 @@ const AdminDashboard = () => {
     showToast("Generating certificates... Please wait.");
     
     try {
-      for (let i = 0; i < players.length; i++) {
-        const player = players[i];
+      const sortedPlayers = [...players].sort((a, b) => a.rank - b.rank);
+      for (let i = 0; i < sortedPlayers.length; i++) {
+        const player = sortedPlayers[i];
         let placement = 'Certificate of Participation';
         if (i === 0) placement = 'Winner (1st Place)';
         else if (i === 1) placement = 'Runner-Up (2nd Place)';
@@ -662,7 +663,7 @@ const AdminDashboard = () => {
                 </tr>
               </thead>
               <tbody>
-                {players.map(p => (
+                {[...players].sort((a, b) => a.rank - b.rank).map(p => (
                   <tr key={p._id || p.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
                     <td style={{ padding: '14px 16px' }}>
                       <div style={{ width: '56px', height: '56px', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--color-outline)', backgroundColor: 'var(--color-surface-container-high)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -943,7 +944,7 @@ const AdminDashboard = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {players.map(p => {
+                  {[...players].sort((a, b) => a.rank - b.rank).map(p => {
                     const selectId = `cert-${p._id || p.id}`;
                     return (
                       <tr key={p._id || p.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
