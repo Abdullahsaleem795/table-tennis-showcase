@@ -8,7 +8,7 @@ const Rankings = () => {
   const [players, setPlayers] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  const fetchPlayers = () => {
     api.get('/players')
       .then((res) => {
         setPlayers(res.data);
@@ -19,6 +19,14 @@ const Rankings = () => {
       .finally(() => {
         setLoading(false);
       });
+  };
+
+  useEffect(() => {
+    fetchPlayers();
+    // Re-fetch when user returns to this tab so rank changes are always live
+    const handleFocus = () => fetchPlayers();
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
   }, []);
 
   // Sort helper (redundant but safe)

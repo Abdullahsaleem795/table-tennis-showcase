@@ -22,7 +22,7 @@ const PlayerProfile = () => {
   const [timeRemaining, setTimeRemaining] = useState('');
   const [voting, setVoting] = useState(false);
 
-  useEffect(() => {
+  const fetchPlayerData = () => {
     // Load player details
     api.get(`/players/${id}`)
       .then((res) => {
@@ -50,6 +50,14 @@ const PlayerProfile = () => {
         setTotalVotes(total);
       })
       .catch(err => console.error("Error loading players for votes count", err));
+  };
+
+  useEffect(() => {
+    fetchPlayerData();
+    // Re-fetch on window focus so rank/profile changes from admin panel are always live
+    const handleFocus = () => fetchPlayerData();
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
   }, [id]);
 
   useEffect(() => {

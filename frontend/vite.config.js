@@ -7,11 +7,17 @@ export default defineConfig({
   server: {
     port: 3000,
     allowedHosts: true, // Allow external live tunnels (localhost.run, ngrok, localtunnel)
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+    },
     proxy: {
       '/api': {
         target: 'http://127.0.0.1:5000',
         changeOrigin: true,
-        secure: false
+        secure: false,
+        configure: (proxy) => {
+          proxy.on('error', (err) => console.log('proxy error', err));
+        }
       },
       '/uploads': {
         target: 'http://127.0.0.1:5000',

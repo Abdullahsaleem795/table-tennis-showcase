@@ -495,13 +495,21 @@ const AdminDashboard = () => {
 
     try {
       if (editingPlayerId) {
-        await api.put(`/players/${editingPlayerId}`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+        const response = await api.put(`/players/${editingPlayerId}`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+        const updatedPlayer = response.data;
+        // Immediately update the player in state so rank reflects everywhere NOW
+        if (updatedPlayer && updatedPlayer._id) {
+          setPlayers(prev => prev.map(p => 
+            (p._id === updatedPlayer._id || p.id === updatedPlayer.id) ? updatedPlayer : p
+          ));
+        }
         showToast("Player profile updated!");
       } else {
         await api.post('/players', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
         showToast("New player added!");
       }
       setIsFormOpen(false);
+      // Also do a full refresh to sync any server-side rank shifts
       fetchDashboardData();
     } catch (err) {
       showToast(err.response?.data?.message || "Error saving player profile", "error");
