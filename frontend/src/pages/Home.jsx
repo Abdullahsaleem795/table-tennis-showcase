@@ -380,11 +380,21 @@ const Home = () => {
               <CardSkeleton />
             ) : latestPlayer ? (
               <div className="m3-card interactive" style={{ padding: '24px', display: 'flex', gap: '20px', alignItems: 'center' }}>
-                <img
-                  src={latestPlayer.avatarUrl ? (latestPlayer.avatarUrl.startsWith('http') ? latestPlayer.avatarUrl : `${api.defaults.baseURL || ''}${latestPlayer.avatarUrl}`) : ''}
-                  alt={latestPlayer.name}
-                  style={{ width: '100px', height: '120px', borderRadius: '12px', objectFit: 'cover', objectPosition: 'center 15%', flexShrink: 0 }}
-                />
+                {latestPlayer.avatarUrl ? (
+                  <img
+                    src={latestPlayer.avatarUrl.startsWith('http') || latestPlayer.avatarUrl.startsWith('data:') ? latestPlayer.avatarUrl : `${api.defaults.baseURL || ''}${latestPlayer.avatarUrl}`}
+                    alt={latestPlayer.name}
+                    style={{ width: '100px', height: '120px', borderRadius: '12px', objectFit: 'cover', objectPosition: 'center 15%', flexShrink: 0 }}
+                  />
+                ) : (
+                  <div style={{
+                    width: '100px', height: '120px', borderRadius: '12px', flexShrink: 0,
+                    backgroundColor: 'var(--color-surface-container-high)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center'
+                  }}>
+                    <FaUser style={{ fontSize: '32px', color: 'var(--color-on-surface-variant)' }} />
+                  </div>
+                )}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   <span style={{ color: 'var(--color-primary)', fontWeight: 700, fontSize: '0.85rem' }}>RANK #{latestPlayer.rank}</span>
                   <h3 style={{ fontSize: '1.4rem' }}>{latestPlayer.name}</h3>
