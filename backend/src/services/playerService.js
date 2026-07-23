@@ -197,7 +197,7 @@ module.exports = {
         const payload = {
           id: newId,
           name: playerData.name,
-          email: playerData.email || '',
+          // NOTE: 'email' column does not exist in Supabase schema — omit it here
           rank: parseInt(playerData.rank, 10),
           playing_style: playerData.playingStyle,
           playing_hand: playerData.playingHand,
@@ -267,7 +267,8 @@ module.exports = {
       try {
         const payload = {};
         if (playerData.name !== undefined) payload.name = playerData.name;
-        if (playerData.email !== undefined) payload.email = playerData.email;
+        // NOTE: 'email' column doesn't exist in Supabase schema — skip it to prevent update failures
+        // if (playerData.email !== undefined) payload.email = playerData.email;
         if (playerData.rank !== undefined) payload.rank = parseInt(playerData.rank, 10);
         if (playerData.playingStyle !== undefined) payload.playing_style = playerData.playingStyle;
         if (playerData.playingHand !== undefined) payload.playing_hand = playerData.playingHand;
