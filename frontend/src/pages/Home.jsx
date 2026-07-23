@@ -383,7 +383,7 @@ const Home = () => {
                 <img
                   src={latestPlayer.avatarUrl ? (latestPlayer.avatarUrl.startsWith('http') ? latestPlayer.avatarUrl : `${api.defaults.baseURL || ''}${latestPlayer.avatarUrl}`) : ''}
                   alt={latestPlayer.name}
-                  style={{ width: '120px', height: '150px', borderRadius: '12px', objectFit: 'cover' }}
+                  style={{ width: '120px', height: '150px', borderRadius: '12px', objectFit: 'cover', objectPosition: 'top center' }}
                 />
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   <span style={{ color: 'var(--color-primary)', fontWeight: 700, fontSize: '0.85rem' }}>RANK #{latestPlayer.rank}</span>
@@ -463,7 +463,7 @@ const Home = () => {
                 <img
                   src={photo.imgUrl}
                   alt={photo.playerName}
-                  style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.3s' }}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top center', transition: 'transform 0.3s' }}
                   onMouseEnter={(e)=>e.target.style.transform='scale(1.05)'}
                   onMouseLeave={(e)=>e.target.style.transform='scale(1)'}
                 />
