@@ -9,12 +9,12 @@ export default defineConfig({
     allowedHosts: true, // Allow external live tunnels (localhost.run, ngrok, localtunnel)
     proxy: {
       '/api': {
-        target: 'http://localhost:5000',
+        target: 'http://127.0.0.1:5000',
         changeOrigin: true,
         secure: false
       },
       '/uploads': {
-        target: 'http://localhost:5000',
+        target: 'http://127.0.0.1:5000',
         changeOrigin: true,
         secure: false
       }

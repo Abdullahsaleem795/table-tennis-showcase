@@ -78,21 +78,19 @@ const Scene = () => {
     <Canvas
       camera={{ position: [0, 0, 6], fov: 45 }}
       style={{ width: '100%', height: '100%', background: 'transparent' }}
-      dpr={[1, 2]}
+      dpr={1}
+      gl={{ antialias: true, powerPreference: 'high-performance' }}
     >
-      {/* Earthy Lighting */}
-      <ambientLight intensity={0.4} color="#F7F2E9" />
-      <directionalLight position={[5, 5, 5]} intensity={1.2} color="#F0DAC4" />
-      <directionalLight position={[-5, -5, -5]} intensity={0.5} color="#8A9A5B" />
-      <pointLight position={[0, 2, 2]} intensity={0.8} color="#A65E2E" />
+      {/* Local High-Performance Lighting (No HDRI Network Downloads) */}
+      <ambientLight intensity={0.7} color="#FFFFFF" />
+      <directionalLight position={[5, 5, 5]} intensity={1.5} color="#FFFDF5" />
+      <directionalLight position={[-5, -5, -5]} intensity={0.6} color="#94A3B8" />
+      <pointLight position={[0, 2, 2]} intensity={0.9} color="#3B82F6" />
 
       <Float speed={reducedMotion ? 0 : 2} rotationIntensity={reducedMotion ? 0 : 0.5} floatIntensity={reducedMotion ? 0 : 0.5}>
         <Paddle reducedMotion={reducedMotion} position={[0, 0, 0]} rotation={[0.2, 0.4, 0.1]} />
         <Ball reducedMotion={reducedMotion} position={[2, 0, 1]} />
       </Float>
-      
-      {/* Soft environment lighting */}
-      <Environment preset="sunset" />
     </Canvas>
   );
 };
