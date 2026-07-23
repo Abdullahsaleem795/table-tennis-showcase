@@ -553,6 +553,7 @@ const AdminDashboard = () => {
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', backgroundColor: 'var(--color-surface-container)' }}>
+                  <th style={{ padding: '14px 16px', width: '50px' }}></th>
                   <th style={{ padding: '14px 16px', fontSize: '0.8rem', textTransform: 'uppercase', color: 'var(--color-on-surface-variant)' }}>Rank</th>
                   <th style={{ padding: '14px 16px', fontSize: '0.8rem', textTransform: 'uppercase', color: 'var(--color-on-surface-variant)' }}>Player Name</th>
                   <th style={{ padding: '14px 16px', fontSize: '0.8rem', textTransform: 'uppercase', color: 'var(--color-on-surface-variant)' }}>Style / Hand</th>
@@ -563,6 +564,15 @@ const AdminDashboard = () => {
               <tbody>
                 {players.map(p => (
                   <tr key={p._id || p.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                    <td style={{ padding: '14px 16px' }}>
+                      <div style={{ width: '36px', height: '36px', borderRadius: '50%', overflow: 'hidden', border: '1px solid var(--color-outline)', backgroundColor: 'var(--color-surface-container-high)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        {p.avatarUrl ? (
+                          <img src={p.avatarUrl.startsWith('http') || p.avatarUrl.startsWith('data:') ? p.avatarUrl : `${api.defaults.baseURL || ''}${p.avatarUrl}`} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top center' }} />
+                        ) : (
+                          <span style={{ fontSize: '16px' }}>👤</span>
+                        )}
+                      </div>
+                    </td>
                     <td style={{ padding: '14px 16px', fontWeight: 700, color: 'var(--color-primary)' }}>#{p.rank}</td>
                     <td style={{ padding: '14px 16px', fontWeight: 600, color: 'var(--color-on-surface)' }}>{p.name}</td>
                     <td style={{ padding: '14px 16px', color: 'var(--color-on-surface)', fontSize: '0.85rem' }}>{p.playingStyle} • {p.playingHand}</td>
