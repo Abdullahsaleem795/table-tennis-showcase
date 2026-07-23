@@ -60,6 +60,12 @@
   padding: 0;
 }
 
+img {
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+  image-rendering: high-quality;
+}
+
 body {
   background-color: var(--color-surface);
   color: var(--color-on-surface);
