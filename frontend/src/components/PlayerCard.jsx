@@ -66,7 +66,7 @@ const PlayerCard = ({ player }) => {
       {/* Photo Container */}
       <div style={{
         width: '100%',
-        height: '200px',
+        height: '280px',
         borderRadius: 'var(--radius-sm)',
         overflow: 'hidden',
         position: 'relative',
@@ -83,8 +83,8 @@ const PlayerCard = ({ player }) => {
             style={{
               width: '100%',
               height: '100%',
-              objectFit: 'cover',
-              objectPosition: 'center 15%',
+              objectFit: 'contain',
+              objectPosition: 'center',
               transition: 'transform 0.3s ease'
             }}
             onMouseEnter={(e) => e.target.style.transform = 'scale(1.04)'}
