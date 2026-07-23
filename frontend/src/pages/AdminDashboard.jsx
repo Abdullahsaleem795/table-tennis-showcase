@@ -1,12 +1,16 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useRef } from 'react';
+import { flushSync } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import api from '../services/api';
 import Toast from '../components/Toast';
 import {
   FaUserShield, FaUsers, FaImage, FaVideo, FaCog, FaLock, FaSignOutAlt,
-  FaPlus, FaEdit, FaTrash, FaCheck, FaTimes, FaUpload, FaGlobe, FaTrophy, FaHandPaper, FaKey, FaRandom, FaCheckCircle, FaClipboardList, FaShareAlt
+  FaPlus, FaEdit, FaTrash, FaCheck, FaTimes, FaUpload, FaGlobe, FaTrophy, FaHandPaper, FaKey, FaRandom, FaCheckCircle, FaClipboardList, FaShareAlt, FaDownload, FaFileArchive
 } from 'react-icons/fa';
+import html2canvas from 'html2canvas';
+import { jsPDF } from 'jspdf';
+import CertificateTemplate from '../components/CertificateTemplate';
 
 const AdminDashboard = () => {
   const { isAuthenticated, logout, changePassword, loading: authLoading } = useContext(AuthContext);
@@ -20,6 +24,10 @@ const AdminDashboard = () => {
   const [stats, setStats] = useState({ totalPlayers: 0, totalPhotos: 0, totalVideos: 0 });
   const [settings, setSettings] = useState(null);
   const [tournament, setTournament] = useState(null);
+  
+  // Certificate State
+  const [certData, setCertData] = useState({ playerName: '', placement: '', date: '' });
+  const certificateRef = useRef(null);
   
   // Poll State
   const [pollActive, setPollActive] = useState(false);
@@ -288,6 +296,76 @@ const AdminDashboard = () => {
       }
     } catch (err) {
       showToast(err.response?.data?.error || "Error sending certificate", "error");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const generatePdfFromTemplate = async (playerName, placement) => {
+    flushSync(() => {
+      setCertData({
+        playerName,
+        placement,
+        date: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+      });
+    });
+
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    if (certificateRef.current) {
+      const canvas = await html2canvas(certificateRef.current, { scale: 2, useCORS: true, backgroundColor: null });
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('l', 'mm', 'a4');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      return pdf;
+    }
+    return null;
+  };
+
+  const handleDownloadCertificate = async (player, placement) => {
+    setSaving(true);
+    try {
+      showToast(`Generating certificate for ${player.name}...`);
+      const pdf = await generatePdfFromTemplate(player.name, placement);
+      if (pdf) {
+        pdf.save(`${player.name.replace(/\s+/g, '_')}_Certificate.pdf`);
+        showToast(`Downloaded certificate for ${player.name}`);
+      }
+    } catch (error) {
+      console.error(error);
+      showToast("Error generating PDF", "error");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDownloadAllCertificates = async () => {
+    if (players.length === 0) return showToast("No players found", "error");
+    
+    setSaving(true);
+    showToast("Generating certificates... Please wait.");
+    
+    try {
+      for (let i = 0; i < players.length; i++) {
+        const player = players[i];
+        let placement = 'Certificate of Participation';
+        if (i === 0) placement = 'Winner (1st Place)';
+        else if (i === 1) placement = 'Runner-Up (2nd Place)';
+        else if (i === 2) placement = '3rd Place';
+        
+        const pdf = await generatePdfFromTemplate(player.name, placement);
+        if (pdf) {
+          pdf.save(`${player.name.replace(/\s+/g, '_')}_Certificate.pdf`);
+        }
+        
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+      showToast("All certificates downloaded successfully!");
+    } catch (error) {
+      console.error(error);
+      showToast("Error generating some PDFs", "error");
     } finally {
       setSaving(false);
     }
@@ -840,11 +918,19 @@ const AdminDashboard = () => {
             <h2 style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: 0, fontFamily: "var(--font-family-heading)", fontSize: '1.5rem', color: 'var(--color-primary)' }}>
               <FaHandPaper /> Certificates Manager
             </h2>
+            <button 
+              className="btn btn-secondary" 
+              onClick={handleDownloadAllCertificates}
+              disabled={saving || players.length === 0}
+              style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', gap: '8px' }}
+            >
+              <FaFileArchive /> Download All Certificates
+            </button>
           </div>
 
           <div className="m3-card" style={{ padding: '24px' }}>
             <p style={{ margin: '0 0 20px 0', color: 'var(--color-text-secondary)', fontSize: '0.95rem' }}>
-              Select a player's placement and click "Send Certificate" to generate and email their beautiful FFL Smash certificate.
+              Select a player's placement and click "Send" to email it, or "Download" to generate a PDF certificate directly to your device.
             </p>
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
@@ -853,7 +939,7 @@ const AdminDashboard = () => {
                     <th style={{ padding: '14px 16px', fontSize: '0.8rem', textTransform: 'uppercase', color: 'var(--color-on-surface-variant)' }}>Player</th>
                     <th style={{ padding: '14px 16px', fontSize: '0.8rem', textTransform: 'uppercase', color: 'var(--color-on-surface-variant)' }}>Email Address</th>
                     <th style={{ padding: '14px 16px', fontSize: '0.8rem', textTransform: 'uppercase', color: 'var(--color-on-surface-variant)' }}>Placement</th>
-                    <th style={{ padding: '14px 16px', fontSize: '0.8rem', textTransform: 'uppercase', color: 'var(--color-on-surface-variant)', textAlign: 'right' }}>Action</th>
+                    <th style={{ padding: '14px 16px', fontSize: '0.8rem', textTransform: 'uppercase', color: 'var(--color-on-surface-variant)', textAlign: 'right' }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -868,23 +954,36 @@ const AdminDashboard = () => {
                         <td style={{ padding: '14px 16px' }}>
                           <select id={selectId} className="form-input" style={{ width: '150px', padding: '6px', fontSize: '0.85rem' }}>
                             <option value="Participant">Participant</option>
-                            <option value="Winner">Winner (1st)</option>
-                            <option value="Runner-up">Runner-up (2nd)</option>
+                            <option value="Winner (1st Place)">Winner (1st Place)</option>
+                            <option value="Runner-Up (2nd Place)">Runner-Up (2nd Place)</option>
                             <option value="3rd Place">3rd Place</option>
                           </select>
                         </td>
                         <td style={{ padding: '14px 16px', textAlign: 'right' }}>
-                          <button 
-                            className="btn btn-primary" 
-                            style={{ padding: '6px 12px', fontSize: '0.85rem' }}
-                            disabled={!p.email || saving}
-                            onClick={() => {
-                              const placement = document.getElementById(selectId).value;
-                              handleSendCertificate(p._id || p.id, placement);
-                            }}
-                          >
-                            <FaShareAlt style={{ marginRight: '6px' }} /> Send
-                          </button>
+                          <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                            <button 
+                              className="btn btn-outline" 
+                              style={{ padding: '6px 12px', fontSize: '0.85rem' }}
+                              disabled={saving}
+                              onClick={() => {
+                                const placement = document.getElementById(selectId).value;
+                                handleDownloadCertificate(p, placement);
+                              }}
+                            >
+                              <FaDownload style={{ marginRight: '4px' }} /> PDF
+                            </button>
+                            <button 
+                              className="btn btn-primary" 
+                              style={{ padding: '6px 12px', fontSize: '0.85rem' }}
+                              disabled={!p.email || saving}
+                              onClick={() => {
+                                const placement = document.getElementById(selectId).value;
+                                handleSendCertificate(p._id || p.id, placement);
+                              }}
+                            >
+                              <FaShareAlt style={{ marginRight: '4px' }} /> Email
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -1050,6 +1149,17 @@ const AdminDashboard = () => {
           </div>
         </div>
       )}
+
+      {/* Hidden container for PDF rendering */}
+      <div style={{ position: 'absolute', top: '-9999px', left: '-9999px', zIndex: -100 }}>
+        <div ref={certificateRef}>
+          <CertificateTemplate 
+            playerName={certData.playerName} 
+            placement={certData.placement} 
+            date={certData.date} 
+          />
+        </div>
+      </div>
     </div>
   );
 };
