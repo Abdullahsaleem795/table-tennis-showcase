@@ -50,6 +50,7 @@ function formatPlayer(p, votes = 0) {
     _id: p.id || p._id,
     id: p.id || p._id,
     name: p.name,
+    email: p.email || '',
     rank: p.rank,
     playingStyle: p.playing_style || p.playingStyle || 'Attack',
     playingHand: p.playing_hand || p.playingHand || 'Right Hand',
@@ -192,6 +193,7 @@ module.exports = {
         const payload = {
           id: newId,
           name: playerData.name,
+          email: playerData.email || '',
           rank: parseInt(playerData.rank, 10),
           playing_style: playerData.playingStyle,
           playing_hand: playerData.playingHand,
@@ -228,6 +230,7 @@ module.exports = {
         _id: newId,
         id: newId,
         name: playerData.name,
+        email: playerData.email || '',
         rank: parseInt(playerData.rank, 10),
         playingStyle: playerData.playingStyle,
         playingHand: playerData.playingHand,
@@ -257,6 +260,7 @@ module.exports = {
       try {
         const payload = {};
         if (playerData.name !== undefined) payload.name = playerData.name;
+        if (playerData.email !== undefined) payload.email = playerData.email;
         if (playerData.rank !== undefined) payload.rank = parseInt(playerData.rank, 10);
         if (playerData.playingStyle !== undefined) payload.playing_style = playerData.playingStyle;
         if (playerData.playingHand !== undefined) payload.playing_hand = playerData.playingHand;

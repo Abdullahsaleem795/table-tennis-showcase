@@ -42,6 +42,7 @@ const AdminDashboard = () => {
 
   // Player Form Fields State
   const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
   const [rank, setRank] = useState('');
   const [playingStyle, setPlayingStyle] = useState('Attack');
   const [playingHand, setPlayingHand] = useState('Right Hand');
@@ -275,9 +276,27 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleSendCertificate = async (playerId, placement) => {
+    setSaving(true);
+    try {
+      const res = await api.post('/certificates/send', { playerId, placement });
+      if (res.data.previewUrl) {
+        showToast(`Certificate sent! Preview URL: ${res.data.previewUrl}`);
+        window.open(res.data.previewUrl, '_blank');
+      } else {
+        showToast("Certificate sent successfully!");
+      }
+    } catch (err) {
+      showToast(err.response?.data?.error || "Error sending certificate", "error");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleOpenAddPlayer = () => {
     setEditingPlayerId(null);
     setName('');
+    setEmail('');
     setRank((players.length + 1).toString());
     setPlayingStyle('Attack');
     setPlayingHand('Right Hand');
@@ -312,6 +331,7 @@ const AdminDashboard = () => {
   const handleOpenEditPlayer = (p) => {
     setEditingPlayerId(p._id || p.id);
     setName(p.name || '');
+    setEmail(p.email || '');
     setRank(p.rank?.toString() || '');
     setPlayingStyle(p.playingStyle || 'Attack');
     setPlayingHand(p.playingHand || 'Right Hand');
@@ -361,6 +381,7 @@ const AdminDashboard = () => {
 
     const formData = new FormData();
     formData.append('name', name);
+    formData.append('email', email);
     formData.append('rank', rank);
     formData.append('playingStyle', playingStyle);
     formData.append('playingHand', playingHand);
@@ -475,10 +496,11 @@ const AdminDashboard = () => {
       {/* Navigation Tabs */}
       <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', marginBottom: '32px', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '12px' }}>
         {[
-          { id: 'overview', label: 'Overview', icon: <FaGlobe /> },
-          { id: 'players', label: `Players (${players.length})`, icon: <FaUsers /> },
+          { id: 'overview', label: 'Overview', icon: <FaClipboardList /> },
+          { id: 'players', label: 'Registered Players', icon: <FaUsers /> },
           { id: 'tournament', label: 'Tournament Control', icon: <FaTrophy /> },
           { id: 'voting', label: 'Voting Manager', icon: <FaCheckCircle /> },
+          { id: 'certificates', label: 'Certificates', icon: <FaHandPaper /> },
           { id: 'settings', label: 'Site Settings', icon: <FaCog /> }
         ].map(tab => (
           <button
@@ -812,6 +834,68 @@ const AdminDashboard = () => {
         </div>
       )}
 
+      {activeTab === 'certificates' && (
+        <div style={{ animation: 'fadeIn 0.3s ease' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
+            <h2 style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: 0, fontFamily: "var(--font-family-heading)", fontSize: '1.5rem', color: 'var(--color-primary)' }}>
+              <FaHandPaper /> Certificates Manager
+            </h2>
+          </div>
+
+          <div className="m3-card" style={{ padding: '24px' }}>
+            <p style={{ margin: '0 0 20px 0', color: 'var(--color-text-secondary)', fontSize: '0.95rem' }}>
+              Select a player's placement and click "Send Certificate" to generate and email their beautiful FFL Smash certificate.
+            </p>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', backgroundColor: 'var(--color-surface-container)' }}>
+                    <th style={{ padding: '14px 16px', fontSize: '0.8rem', textTransform: 'uppercase', color: 'var(--color-on-surface-variant)' }}>Player</th>
+                    <th style={{ padding: '14px 16px', fontSize: '0.8rem', textTransform: 'uppercase', color: 'var(--color-on-surface-variant)' }}>Email Address</th>
+                    <th style={{ padding: '14px 16px', fontSize: '0.8rem', textTransform: 'uppercase', color: 'var(--color-on-surface-variant)' }}>Placement</th>
+                    <th style={{ padding: '14px 16px', fontSize: '0.8rem', textTransform: 'uppercase', color: 'var(--color-on-surface-variant)', textAlign: 'right' }}>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {players.map(p => {
+                    const selectId = `cert-${p._id || p.id}`;
+                    return (
+                      <tr key={p._id || p.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                        <td style={{ padding: '14px 16px', fontWeight: 600, color: 'var(--color-on-surface)' }}>{p.name}</td>
+                        <td style={{ padding: '14px 16px', color: 'var(--color-on-surface-variant)' }}>
+                          {p.email ? p.email : <span style={{ color: 'var(--color-error)' }}>No Email</span>}
+                        </td>
+                        <td style={{ padding: '14px 16px' }}>
+                          <select id={selectId} className="form-input" style={{ width: '150px', padding: '6px', fontSize: '0.85rem' }}>
+                            <option value="Participant">Participant</option>
+                            <option value="Winner">Winner (1st)</option>
+                            <option value="Runner-up">Runner-up (2nd)</option>
+                            <option value="3rd Place">3rd Place</option>
+                          </select>
+                        </td>
+                        <td style={{ padding: '14px 16px', textAlign: 'right' }}>
+                          <button 
+                            className="btn btn-primary" 
+                            style={{ padding: '6px 12px', fontSize: '0.85rem' }}
+                            disabled={!p.email || saving}
+                            onClick={() => {
+                              const placement = document.getElementById(selectId).value;
+                              handleSendCertificate(p._id || p.id, placement);
+                            }}
+                          >
+                            <FaShareAlt style={{ marginRight: '6px' }} /> Send
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* PLAYER MODAL (FORM) */}
       {isFormOpen && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(4px)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyCenter: 'center', padding: '16px' }}>
@@ -843,6 +927,11 @@ const AdminDashboard = () => {
                       <label className="form-label">Club Rank # *</label>
                       <input type="number" required min="1" className="form-input" value={rank} onChange={(e) => setRank(e.target.value)} />
                     </div>
+                  </div>
+
+                  <div>
+                    <label className="form-label">Email Address (For Certificates)</label>
+                    <input type="email" className="form-input" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="player@example.com" />
                   </div>
 
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>

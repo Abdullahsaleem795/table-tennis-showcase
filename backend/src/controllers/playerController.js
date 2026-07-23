@@ -70,7 +70,7 @@ module.exports = {
 
   async createPlayer(req, res, next) {
     try {
-      const { name, rank, playingStyle, playingHand, biography, country } = req.body;
+      const { name, email, rank, playingStyle, playingHand, biography, country } = req.body;
       
       if (!name || !rank || !playingStyle || !playingHand) {
         return res.status(400).json({ message: 'Name, rank, playingStyle, and playingHand are required.' });
@@ -138,6 +138,7 @@ module.exports = {
 
       const player = await playerService.create({
         name,
+        email,
         rank: parseInt(rank, 10),
         playingStyle,
         playingHand,
@@ -173,7 +174,7 @@ module.exports = {
       }
 
       const updates = {};
-      const fields = ['name', 'rank', 'playingStyle', 'playingHand', 'biography', 'country'];
+      const fields = ['name', 'email', 'rank', 'playingStyle', 'playingHand', 'biography', 'country'];
       fields.forEach(field => {
         if (req.body[field] !== undefined) {
           updates[field] = req.body[field];

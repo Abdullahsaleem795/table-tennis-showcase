@@ -11,6 +11,10 @@ const playerSchema = new mongoose.Schema({
     required: true,
     unique: true
   },
+  email: {
+    type: String,
+    default: ''
+  },
   playingStyle: {
     type: String,
     enum: ['Attack', 'Defense', 'All Round', 'Offensive', 'Defensive'],
