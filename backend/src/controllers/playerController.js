@@ -55,14 +55,9 @@ module.exports = {
 
   async getStats(req, res, next) {
     try {
-      const totalPlayers = await playerService.count();
-      const totalPhotos = await playerService.getTotalPhotos();
-      const totalVideos = await playerService.getTotalVideos();
-      res.json({
-        totalPlayers,
-        totalPhotos,
-        totalVideos
-      });
+      // Single pass — avoids calling getAll() three separate times
+      const stats = await playerService.getStats();
+      res.json(stats);
     } catch (err) {
       next(err);
     }

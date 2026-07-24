@@ -6,8 +6,18 @@ function generateId() {
   return Math.random().toString(36).substring(2, 9) + Date.now().toString(36);
 }
 
-// Fetch all votes as a Map of playerId -> voteCount
+// ─── In-memory votes cache ────────────────────────────────────────────────────
+// Avoids a Supabase round-trip on every getAll() / getById() call
+let _votesCache = null;
+let _votesCacheTs = 0;
+const VOTES_CACHE_TTL_MS = 30_000; // 30 seconds
+
 async function getVotesMap() {
+  const now = Date.now();
+  if (_votesCache && now - _votesCacheTs < VOTES_CACHE_TTL_MS) {
+    return _votesCache;
+  }
+
   if (isSupabaseConfigured()) {
     try {
       const { data, error } = await supabase
@@ -17,25 +27,36 @@ async function getVotesMap() {
         .maybeSingle();
 
       if (!error && data && data.social_links) {
-        return data.social_links || {};
+        _votesCache = data.social_links || {};
+        _votesCacheTs = now;
+        return _votesCache;
       }
     } catch (err) {
-      console.error("Supabase getVotesMap failed:", err.message);
+      console.error('Supabase getVotesMap failed:', err.message);
     }
   }
 
   const data = dbConfig.getLocalData();
-  return data.pollVotes || {};
+  _votesCache = data.pollVotes || {};
+  _votesCacheTs = now;
+  return _votesCache;
+}
+
+function invalidateVotesCache() {
+  _votesCache = null;
+  _votesCacheTs = 0;
 }
 
 async function saveVotesMap(votesMap) {
+  invalidateVotesCache();
+
   if (isSupabaseConfigured()) {
     try {
       await supabase
         .from('settings')
         .upsert([{ id: 'poll_votes', social_links: votesMap }]);
     } catch (err) {
-      console.error("Supabase saveVotesMap failed:", err.message);
+      console.error('Supabase saveVotesMap failed:', err.message);
     }
   }
 
@@ -70,6 +91,9 @@ function formatPlayer(p, votes = 0) {
   };
 }
 
+// ─── OPTIMIZED rank conflict resolution ──────────────────────────────────────
+// OLD: Sequential loop → N Supabase round-trips (one per player)
+// NEW: Single batch upsert → 1 Supabase round-trip regardless of player count
 async function resolveRankConflicts(targetRank, targetPlayerId = null) {
   targetRank = parseInt(targetRank, 10);
   if (isNaN(targetRank) || targetRank < 1) targetRank = 1;
@@ -87,19 +111,18 @@ async function resolveRankConflicts(targetRank, targetPlayerId = null) {
       const conflict = otherPlayers.some(p => p.rank === targetRank);
 
       if (conflict) {
-        if (targetPlayerId) {
-          await supabase.from('players').update({ rank: 999999 }).eq('id', targetPlayerId);
-        }
-        const toShift = otherPlayers
+        // Build a batch of all rank shifts needed in one go
+        const toUpdate = otherPlayers
           .filter(p => p.rank >= targetRank)
-          .sort((a, b) => b.rank - a.rank);
+          .map(p => ({ id: p.id, rank: p.rank + 1 }));
 
-        for (const p of toShift) {
-          await supabase.from('players').update({ rank: p.rank + 1 }).eq('id', p.id);
+        if (toUpdate.length > 0) {
+          // Single upsert call instead of N individual updates
+          await supabase.from('players').upsert(toUpdate, { onConflict: 'id' });
         }
       }
     } catch (e) {
-      console.error("Supabase rank resolution notice:", e.message);
+      console.error('Supabase rank resolution notice:', e.message);
     }
   } else if (dbConfig.isMongoConnected()) {
     const query = { rank: targetRank };
@@ -109,11 +132,8 @@ async function resolveRankConflicts(targetRank, targetPlayerId = null) {
       if (targetPlayerId) await Player.findByIdAndUpdate(targetPlayerId, { rank: 999999 });
       const gteQuery = { rank: { $gte: targetRank } };
       if (targetPlayerId) gteQuery._id = { $ne: targetPlayerId };
-      const toShift = await Player.find(gteQuery).sort({ rank: -1 });
-      for (const p of toShift) {
-        p.rank = p.rank + 1;
-        await p.save();
-      }
+      // Mongo bulk write — single operation
+      await Player.updateMany(gteQuery, { $inc: { rank: 1 } });
     }
   } else {
     const data = dbConfig.getLocalData();
@@ -133,20 +153,18 @@ async function resolveRankConflicts(targetRank, targetPlayerId = null) {
 
 module.exports = {
   async getAll() {
-    const votesMap = await getVotesMap();
+    // Fetch votes and players in parallel — saves one round-trip
+    const [votesMap, playersResult] = await Promise.all([
+      getVotesMap(),
+      isSupabaseConfigured()
+        ? supabase.from('players').select('*').order('rank', { ascending: true })
+        : Promise.resolve(null)
+    ]);
 
-    if (isSupabaseConfigured()) {
-      try {
-        const { data, error } = await supabase
-          .from('players')
-          .select('*')
-          .order('rank', { ascending: true });
-
-        if (!error && data) {
-          return data.map(p => formatPlayer(p, votesMap[p.id] || 0));
-        }
-      } catch (err) {
-        console.error("Supabase getAll players failed:", err.message);
+    if (isSupabaseConfigured() && playersResult) {
+      const { data, error } = playersResult;
+      if (!error && data) {
+        return data.map(p => formatPlayer(p, votesMap[p.id] || 0));
       }
     }
 
@@ -174,7 +192,7 @@ module.exports = {
 
         if (!error && data) return formatPlayer(data, votesMap[id] || 0);
       } catch (err) {
-        console.error("Supabase getById failed:", err.message);
+        console.error('Supabase getById failed:', err.message);
       }
     }
 
@@ -197,7 +215,6 @@ module.exports = {
         const payload = {
           id: newId,
           name: playerData.name,
-          // NOTE: 'email' column does not exist in Supabase schema — omit it here
           rank: parseInt(playerData.rank, 10),
           playing_style: playerData.playingStyle,
           playing_hand: playerData.playingHand,
@@ -218,9 +235,9 @@ module.exports = {
           .single();
 
         if (!error && data) return formatPlayer(data, 0);
-        if (error) console.error("Supabase player insert notice:", error.message);
+        if (error) console.error('Supabase player insert notice:', error.message);
       } catch (err) {
-        console.error("Supabase create player error:", err.message);
+        console.error('Supabase create player error:', err.message);
       }
     }
 
@@ -267,8 +284,6 @@ module.exports = {
       try {
         const payload = {};
         if (playerData.name !== undefined) payload.name = playerData.name;
-        // NOTE: 'email' column doesn't exist in Supabase schema — skip it to prevent update failures
-        // if (playerData.email !== undefined) payload.email = playerData.email;
         if (playerData.rank !== undefined) payload.rank = parseInt(playerData.rank, 10);
         if (playerData.playingStyle !== undefined) payload.playing_style = playerData.playingStyle;
         if (playerData.playingHand !== undefined) payload.playing_hand = playerData.playingHand;
@@ -290,9 +305,9 @@ module.exports = {
         if (!error && data) {
           return formatPlayer(data, votesMap[id] || 0);
         }
-        if (error) console.error("Supabase update error:", error.message);
+        if (error) console.error('Supabase update error:', error.message);
       } catch (err) {
-        console.error("Supabase update player error:", err.message);
+        console.error('Supabase update player error:', err.message);
       }
     }
 
@@ -315,7 +330,6 @@ module.exports = {
     const votesMap = await getVotesMap();
     votesMap[id] = (parseInt(votesMap[id], 10) || 0) + 1;
     await saveVotesMap(votesMap);
-
     return await this.getById(id);
   },
 
@@ -335,7 +349,7 @@ module.exports = {
 
         if (data) return formatPlayer(data, 0);
       } catch (err) {
-        console.error("Supabase delete player error:", err.message);
+        console.error('Supabase delete player error:', err.message);
       }
     }
 
@@ -362,7 +376,7 @@ module.exports = {
 
         if (!error && count !== null) return count;
       } catch (err) {
-        console.error("Supabase player count error:", err.message);
+        console.error('Supabase player count error:', err.message);
       }
     }
 
@@ -373,14 +387,25 @@ module.exports = {
     }
   },
 
+  // Compute stats from a single getAll() call instead of calling getAll() twice
+  async getStats() {
+    const players = await this.getAll();
+    let totalPhotos = 0;
+    let totalVideos = 0;
+    players.forEach(p => {
+      if (p.avatarUrl) totalPhotos++;
+      if (p.gallery && Array.isArray(p.gallery)) totalPhotos += p.gallery.length;
+      if (p.promoVideo && p.promoVideo.url) totalVideos++;
+    });
+    return { totalPlayers: players.length, totalPhotos, totalVideos };
+  },
+
   async getTotalPhotos() {
     const players = await this.getAll();
     let count = 0;
     players.forEach(p => {
       if (p.avatarUrl) count++;
-      if (p.gallery && Array.isArray(p.gallery)) {
-        count += p.gallery.length;
-      }
+      if (p.gallery && Array.isArray(p.gallery)) count += p.gallery.length;
     });
     return count;
   },
