@@ -40,8 +40,13 @@ const VideoPlayer = ({ video }) => {
     return url;
   };
 
-  const isLocal = video.type === 'local';
-  const videoUrl = isLocal ? (video.url.startsWith('http') || video.url.startsWith('data:') || video.url.startsWith('blob:') ? video.url : `${api.defaults.baseURL || ''}${video.url}`) : getEmbedUrl(video.url);
+  const isLocal = video.type === 'local' || video.type === 'base64';
+  // base64 data URIs are used directly; local files need the API base prepended
+  const videoUrl = isLocal
+    ? (video.type === 'base64' || video.url.startsWith('data:') || video.url.startsWith('http') || video.url.startsWith('blob:')
+        ? video.url
+        : `${api.defaults.baseURL || ''}${video.url}`)
+    : getEmbedUrl(video.url);
 
   return (
     <div style={{

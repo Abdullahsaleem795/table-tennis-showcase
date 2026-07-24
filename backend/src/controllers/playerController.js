@@ -110,13 +110,15 @@ module.exports = {
         });
       }
 
-      // Handle video file (ephemeral local) or external link (recommended)
+      // Handle video file — convert to base64 (Vercel has no persistent filesystem)
       let promoVideo = { type: 'external', url: '' };
       const videoFile = (req.files && req.files.video && req.files.video[0]) || (req.files && req.files.promoVideoFile && req.files.promoVideoFile[0]);
       if (videoFile) {
+        const videoBase64 = fileToBase64(videoFile);
+        if (file && file.path) fs.unlinkSync(file.path);
         promoVideo = {
-          type: 'local',
-          url: `/uploads/${videoFile.filename}`
+          type: 'base64',
+          url: videoBase64
         };
       } else if (req.body.promoVideo) {
         try {
@@ -239,38 +241,28 @@ module.exports = {
       }
       updates.gallery = finalGallery;
 
-      // Handle video updates (local/external)
+      // Handle video updates — convert to base64 (Vercel has no persistent filesystem)
       const videoFile = (req.files && req.files.video && req.files.video[0]) || (req.files && req.files.promoVideoFile && req.files.promoVideoFile[0]);
       if (videoFile) {
-        if (existingPlayer.promoVideo && existingPlayer.promoVideo.type === 'local') {
-          deleteLocalFile(existingPlayer.promoVideo.url);
-        }
+        const videoBase64 = fileToBase64(videoFile);
+        if (videoFile.path) fs.unlinkSync(videoFile.path);
         updates.promoVideo = {
-          type: 'local',
-          url: `/uploads/${videoFile.filename}`
+          type: 'base64',
+          url: videoBase64
         };
       } else if (req.body.promoVideo) {
         try {
           const pv = typeof req.body.promoVideo === 'string' ? JSON.parse(req.body.promoVideo) : req.body.promoVideo;
-          if (existingPlayer.promoVideo && existingPlayer.promoVideo.type === 'local' && pv.url !== existingPlayer.promoVideo.url) {
-            deleteLocalFile(existingPlayer.promoVideo.url);
-          }
           updates.promoVideo = pv;
         } catch (e) {
           updates.promoVideo = { type: 'external', url: req.body.promoVideo };
         }
       } else if (req.body.promoVideoUrl !== undefined) {
-        if (existingPlayer.promoVideo && existingPlayer.promoVideo.type === 'local' && req.body.promoVideoUrl !== existingPlayer.promoVideo.url) {
-          deleteLocalFile(existingPlayer.promoVideo.url);
-        }
         updates.promoVideo = {
           type: 'external',
           url: req.body.promoVideoUrl
         };
       } else if (req.body.deleteVideo === 'true') {
-        if (existingPlayer.promoVideo && existingPlayer.promoVideo.type === 'local') {
-          deleteLocalFile(existingPlayer.promoVideo.url);
-        }
         updates.promoVideo = { type: 'external', url: '' };
       }
 
