@@ -11,6 +11,9 @@ const Players = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStyle, setSelectedStyle] = useState('All');
   
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  
   const location = useLocation();
 
   useEffect(() => {
@@ -20,10 +23,26 @@ const Players = () => {
     if (searchParam) {
       setSearchQuery(searchParam);
     }
+    const currentSearch = searchParam || searchQuery;
 
-    api.get('/players')
+    // Build query params
+    const queryParams = new URLSearchParams({
+      page,
+      limit: 12
+    });
+    if (currentSearch) queryParams.append('search', currentSearch);
+    if (selectedStyle !== 'All') queryParams.append('style', selectedStyle);
+
+    setLoading(true);
+    api.get(`/players?${queryParams.toString()}`)
       .then((res) => {
-        setPlayers(res.data);
+        if (res.data && res.data.data) {
+          setPlayers(res.data.data);
+          setTotalPages(res.data.totalPages);
+        } else {
+          setPlayers(Array.isArray(res.data) ? res.data : []);
+          setTotalPages(1);
+        }
       })
       .catch((err) => {
         console.error("Error loading players:", err);
@@ -31,24 +50,13 @@ const Players = () => {
       .finally(() => {
         setLoading(false);
       });
-  }, [location]);
+  }, [location, page, searchQuery, selectedStyle]);
 
   // Styles list for filter tab
   const stylesList = ['All', 'Attack', 'Offensive', 'Defense', 'Defensive', 'All Round'];
 
-  // Filter and Search logic
-  const filteredPlayers = players.filter(player => {
-    const nameMatch = player.name.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    // Support searching by rank number directly (e.g. "1" or "rank 1")
-    const cleanedSearch = searchQuery.toLowerCase().replace('rank', '').trim();
-    const rankMatch = player.rank.toString() === cleanedSearch;
-
-    const matchesSearch = nameMatch || rankMatch;
-    const matchesStyle = selectedStyle === 'All' || player.playingStyle === selectedStyle;
-
-    return matchesSearch && matchesStyle;
-  });
+  // Filter and Search logic is now handled by the backend
+  const filteredPlayers = players;
 
   return (
     <div style={{ position: 'relative', overflow: 'hidden' }}>
@@ -81,7 +89,7 @@ const Players = () => {
               type="text"
               placeholder="Search by name or rank (e.g. 1)..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
               className="form-input"
               style={{ paddingLeft: '40px', borderRadius: '10px' }}
             />
@@ -101,7 +109,7 @@ const Players = () => {
             {stylesList.map((style) => (
               <button
                 key={style}
-                onClick={() => setSelectedStyle(style)}
+                onClick={() => { setSelectedStyle(style); setPage(1); }}
                 style={{
                   background: selectedStyle === style ? 'linear-gradient(135deg, var(--color-tertiary) 0%, var(--color-primary) 100%)' : 'none',
                   border: 'none',
@@ -152,6 +160,29 @@ const Players = () => {
             </div>
           )}
         </div>
+
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '20px', marginTop: '40px' }}>
+            <button
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="btn btn-secondary"
+            >
+              Previous
+            </button>
+            <span style={{ color: 'var(--color-on-surface-variant)', fontSize: '0.9rem' }}>
+              Page <strong style={{ color: 'var(--color-on-surface)' }}>{page}</strong> of {totalPages}
+            </span>
+            <button
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+              className="btn btn-secondary"
+            >
+              Next
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

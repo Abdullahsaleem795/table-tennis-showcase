@@ -152,30 +152,67 @@ async function resolveRankConflicts(targetRank, targetPlayerId = null) {
 }
 
 module.exports = {
-  async getAll() {
-    // Fetch votes and players in parallel — saves one round-trip
-    const [votesMap, playersResult] = await Promise.all([
-      getVotesMap(),
-      isSupabaseConfigured()
-        ? supabase.from('players').select('*').order('rank', { ascending: true })
-        : Promise.resolve(null)
-    ]);
+  async getAll(page, limit, search, style) {
+    const isPaginated = page !== undefined && limit !== undefined;
+    const pageNum = parseInt(page, 10) || 1;
+    const limitNum = parseInt(limit, 10) || 12;
+    const offset = (pageNum - 1) * limitNum;
 
-    if (isSupabaseConfigured() && playersResult) {
-      const { data, error } = playersResult;
+    const votesMap = await getVotesMap();
+
+    if (isSupabaseConfigured()) {
+      let query = supabase.from('players').select('*', { count: 'exact' }).order('rank', { ascending: true });
+      if (search) {
+        if (!isNaN(parseInt(search, 10))) {
+          query = query.or(`name.ilike.%${search}%,rank.eq.${parseInt(search, 10)}`);
+        } else {
+          query = query.ilike('name', `%${search}%`);
+        }
+      }
+      if (style && style !== 'All') {
+        query = query.eq('playing_style', style);
+      }
+      if (isPaginated) {
+        query = query.range(offset, offset + limitNum - 1);
+      }
+      const { data, count, error } = await query;
       if (!error && data) {
-        return data.map(p => formatPlayer(p, votesMap[p.id] || 0));
+        const formatted = data.map(p => formatPlayer(p, votesMap[p.id] || 0));
+        if (isPaginated) {
+          return { data: formatted, total: count || 0, page: pageNum, totalPages: Math.ceil((count || 0) / limitNum) };
+        }
+        return formatted;
       }
     }
 
     if (dbConfig.isMongoConnected()) {
-      const players = await Player.find({}).sort({ rank: 1 });
-      return players.map(p => formatPlayer(p, votesMap[p._id || p.id] || 0));
+      if (isPaginated) {
+        const total = await Player.countDocuments();
+        const players = await Player.find({}).sort({ rank: 1 }).skip(offset).limit(limitNum);
+        return {
+          data: players.map(p => formatPlayer(p, votesMap[p._id || p.id] || 0)),
+          total,
+          page: pageNum,
+          totalPages: Math.ceil(total / limitNum)
+        };
+      } else {
+        const players = await Player.find({}).sort({ rank: 1 });
+        return players.map(p => formatPlayer(p, votesMap[p._id || p.id] || 0));
+      }
     } else {
-      const data = dbConfig.getLocalData();
-      const players = [...data.players];
-      players.sort((a, b) => a.rank - b.rank);
-      return players.map(p => formatPlayer(p, votesMap[p._id || p.id] || 0));
+      const dbData = dbConfig.getLocalData();
+      const players = [...dbData.players].sort((a, b) => a.rank - b.rank);
+      const formatted = players.map(p => formatPlayer(p, votesMap[p._id || p.id] || 0));
+      
+      if (isPaginated) {
+        return {
+          data: formatted.slice(offset, offset + limitNum),
+          total: formatted.length,
+          page: pageNum,
+          totalPages: Math.ceil(formatted.length / limitNum)
+        };
+      }
+      return formatted;
     }
   },
 

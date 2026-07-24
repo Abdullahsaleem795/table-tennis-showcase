@@ -470,7 +470,8 @@ const AdminDashboard = () => {
       const compressionOptions = {
         maxSizeMB: 0.5,
         maxWidthOrHeight: 1024,
-        useWebWorker: true
+        useWebWorker: true,
+        fileType: 'image/webp'
       };
 
       let compressedAvatar = avatarFile;

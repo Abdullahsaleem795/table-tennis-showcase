@@ -1,8 +1,41 @@
 const fs = require('fs');
 const path = require('path');
 const playerService = require('../services/playerService');
+const { supabase, isSupabaseConfigured } = require('../config/supabase');
 
-// Helper to convert uploaded files to Base64 strings
+async function uploadToSupabase(file, folder = 'uploads') {
+  if (!file) return '';
+  if (!isSupabaseConfigured()) return '';
+  
+  try {
+    const fileExt = path.extname(file.originalname);
+    const fileName = `${folder}/${Date.now()}-${Math.round(Math.random() * 1E9)}${fileExt}`;
+    const fileData = file.buffer || fs.readFileSync(file.path);
+    
+    const { data, error } = await supabase.storage
+      .from('showcase-media')
+      .upload(fileName, fileData, {
+        contentType: file.mimetype,
+        upsert: false
+      });
+      
+    if (error) {
+      console.error("Supabase storage upload error:", error.message);
+      return '';
+    }
+    
+    const { data: publicUrlData } = supabase.storage
+      .from('showcase-media')
+      .getPublicUrl(fileName);
+      
+    return publicUrlData.publicUrl;
+  } catch (err) {
+    console.error("Error uploading to Supabase:", err);
+    return '';
+  }
+}
+
+// Helper to convert uploaded files to Base64 strings (fallback)
 function fileToBase64(file) {
   if (!file) return '';
   try {
@@ -13,6 +46,14 @@ function fileToBase64(file) {
     console.error("Error converting file to Base64:", err);
     return '';
   }
+}
+
+async function processFile(file, folder = 'media') {
+  if (!file) return '';
+  if (isSupabaseConfigured()) {
+    return await uploadToSupabase(file, folder);
+  }
+  return fileToBase64(file);
 }
 
 // Helper to delete local uploads
@@ -34,8 +75,9 @@ function deleteLocalFile(fileUrl) {
 module.exports = {
   async getAllPlayers(req, res, next) {
     try {
-      const players = await playerService.getAll();
-      res.json(players);
+      const { page, limit, search, style } = req.query;
+      const result = await playerService.getAll(page, limit, search, style);
+      res.json(result);
     } catch (err) {
       next(err);
     }
@@ -90,35 +132,35 @@ module.exports = {
         }
       }
 
-      // Handle avatar file (Base64)
+      // Handle avatar file
       let avatarUrl = '';
       if (req.files && req.files.avatar && req.files.avatar[0]) {
         const file = req.files.avatar[0];
-        avatarUrl = fileToBase64(file);
+        avatarUrl = await processFile(file, 'avatars');
         // Delete local temp file
         if (file.path) fs.unlinkSync(file.path);
       }
 
-      // Handle gallery files (Base64)
+      // Handle gallery files
       const gallery = [];
       if (req.files && req.files.gallery) {
-        req.files.gallery.forEach(file => {
-          const base64Str = fileToBase64(file);
-          if (base64Str) gallery.push(base64Str);
+        for (const file of req.files.gallery) {
+          const url = await processFile(file, 'gallery');
+          if (url) gallery.push(url);
           // Delete local temp file
           if (file.path) fs.unlinkSync(file.path);
-        });
+        }
       }
 
-      // Handle video file — convert to base64 (Vercel has no persistent filesystem)
+      // Handle video file
       let promoVideo = { type: 'external', url: '' };
       const videoFile = (req.files && req.files.video && req.files.video[0]) || (req.files && req.files.promoVideoFile && req.files.promoVideoFile[0]);
       if (videoFile) {
-        const videoBase64 = fileToBase64(videoFile);
+        const videoUrl = await processFile(videoFile, 'videos');
         if (videoFile.path) fs.unlinkSync(videoFile.path);
         promoVideo = {
-          type: 'base64',
-          url: videoBase64
+          type: isSupabaseConfigured() ? 'supabase' : 'base64',
+          url: videoUrl
         };
       } else if (req.body.promoVideo) {
         try {
@@ -199,14 +241,14 @@ module.exports = {
         }
       }
 
-      // Handle avatar file (Base64)
+      // Handle avatar file
       if (req.files && req.files.avatar && req.files.avatar[0]) {
         const file = req.files.avatar[0];
         // Delete old local avatar if it was stored on disk
         if (existingPlayer.avatarUrl && existingPlayer.avatarUrl.startsWith('/uploads/')) {
           deleteLocalFile(existingPlayer.avatarUrl);
         }
-        updates.avatarUrl = fileToBase64(file);
+        updates.avatarUrl = await processFile(file, 'avatars');
         if (file.path) fs.unlinkSync(file.path);
       } else if (req.body.deleteAvatar === 'true') {
         if (existingPlayer.avatarUrl && existingPlayer.avatarUrl.startsWith('/uploads/')) {
@@ -245,24 +287,24 @@ module.exports = {
         }
       }
 
-      // Append new gallery uploads (Base64)
+      // Append new gallery uploads
       if (req.files && req.files.gallery) {
-        req.files.gallery.forEach(file => {
-          const base64Str = fileToBase64(file);
-          if (base64Str) finalGallery.push(base64Str);
+        for (const file of req.files.gallery) {
+          const url = await processFile(file, 'gallery');
+          if (url) finalGallery.push(url);
           if (file.path) fs.unlinkSync(file.path);
-        });
+        }
       }
       updates.gallery = finalGallery;
 
-      // Handle video updates — convert to base64 (Vercel has no persistent filesystem)
+      // Handle video updates
       const videoFile = (req.files && req.files.video && req.files.video[0]) || (req.files && req.files.promoVideoFile && req.files.promoVideoFile[0]);
       if (videoFile) {
-        const videoBase64 = fileToBase64(videoFile);
+        const videoUrl = await processFile(videoFile, 'videos');
         if (videoFile.path) fs.unlinkSync(videoFile.path);
         updates.promoVideo = {
-          type: 'base64',
-          url: videoBase64
+          type: isSupabaseConfigured() ? 'supabase' : 'base64',
+          url: videoUrl
         };
       } else if (req.body.promoVideo) {
         try {
