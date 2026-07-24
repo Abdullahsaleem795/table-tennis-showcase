@@ -4,7 +4,7 @@ const userService = require('../services/userService');
 
 const generateToken = (userId) => {
   const secret = process.env.JWT_SECRET || 'supersecret_tabletennis_key_2026';
-  return jwt.sign({ id: userId }, secret, { expiresIn: '7d' });
+  return jwt.sign({ id: userId }, secret, { expiresIn: '8h' });
 };
 
 module.exports = {

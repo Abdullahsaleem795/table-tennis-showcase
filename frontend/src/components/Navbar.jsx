@@ -97,20 +97,7 @@ const Navbar = () => {
           <NavLink to="/about" className="nav-link-custom">About</NavLink>
           <NavLink to="/contact" className="nav-link-custom">Contact</NavLink>
           
-          {isAuthenticated ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', borderLeft: '1px solid rgba(255,255,255,0.08)', paddingLeft: '16px' }}>
-              <Link to="/admin" className="btn btn-secondary" style={{ padding: '6px 14px', fontSize: '0.8rem' }}>
-                <FaUserShield /> Dashboard
-              </Link>
-              <button onClick={handleLogout} className="btn btn-danger" style={{ padding: '6px 14px', fontSize: '0.8rem' }}>
-                <FaSignOutAlt /> Logout
-              </button>
-            </div>
-          ) : (
-            <Link to="/admin/login" className="btn btn-primary" style={{ padding: '6px 14px', fontSize: '0.8rem' }}>
-              Admin Portal
-            </Link>
-          )}
+          {/* Admin controls hidden from public nav — access via /admin/login directly */}
         </div>
 
         {/* Mobile Toggler */}
@@ -154,20 +141,7 @@ const Navbar = () => {
           <NavLink to="/about" className="nav-link-custom" onClick={closeMenu}>About</NavLink>
           <NavLink to="/contact" className="nav-link-custom" onClick={closeMenu}>Contact</NavLink>
           
-          {isAuthenticated ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '14px' }}>
-              <Link to="/admin" className="btn btn-secondary" onClick={closeMenu} style={{ width: '100%' }}>
-                <FaUserShield /> Admin Dashboard
-              </Link>
-              <button onClick={handleLogout} className="btn btn-danger" style={{ width: '100%' }}>
-                <FaSignOutAlt /> Logout
-              </button>
-            </div>
-          ) : (
-            <Link to="/admin/login" className="btn btn-primary" onClick={closeMenu} style={{ width: '100%' }}>
-              Admin Portal
-            </Link>
-          )}
+          {/* Admin controls hidden from public nav — access via /admin/login directly */}
         </div>
       )}
     </nav>

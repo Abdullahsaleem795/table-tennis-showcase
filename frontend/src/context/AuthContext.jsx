@@ -4,26 +4,28 @@ import api from '../services/api';
 export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  // Initialize token synchronously from localStorage — no flicker
-  const storedToken = localStorage.getItem('adminToken');
-  const storedUser = localStorage.getItem('adminUser');
+  // Use sessionStorage instead of localStorage so the admin session
+  // is automatically cleared when the browser tab/window is closed.
+  // This means: if you close the browser and reopen it, you must log in again.
+  const storedToken = sessionStorage.getItem('adminToken');
+  const storedUser = sessionStorage.getItem('adminUser');
 
   const [user, setUser] = useState(storedUser ? JSON.parse(storedUser) : null);
   const [token, setToken] = useState(storedToken || null);
-  // If no token exists, skip the verify call entirely — set loading=false immediately
+  // Only show a loading state if there is actually a stored session to verify
   const [loading, setLoading] = useState(!!storedToken);
 
   useEffect(() => {
-    // Only hit the network if we actually have a stored token
+    // Only hit the network if we actually have a stored token to verify
     if (!storedToken) return;
 
     api.get('/auth/profile')
       .then((res) => {
         setUser(res.data);
-        localStorage.setItem('adminUser', JSON.stringify(res.data));
+        sessionStorage.setItem('adminUser', JSON.stringify(res.data));
       })
       .catch(() => {
-        // Token is expired/invalid — clean up silently
+        // Token is expired or invalid — clean up silently
         logout();
       })
       .finally(() => {
@@ -38,8 +40,9 @@ export const AuthProvider = ({ children }) => {
 
       setToken(newToken);
       setUser(loggedUser);
-      localStorage.setItem('adminToken', newToken);
-      localStorage.setItem('adminUser', JSON.stringify(loggedUser));
+      // sessionStorage: cleared automatically when browser/tab is closed
+      sessionStorage.setItem('adminToken', newToken);
+      sessionStorage.setItem('adminUser', JSON.stringify(loggedUser));
 
       return { success: true };
     } catch (err) {
@@ -51,6 +54,9 @@ export const AuthProvider = ({ children }) => {
   const logout = () => {
     setToken(null);
     setUser(null);
+    sessionStorage.removeItem('adminToken');
+    sessionStorage.removeItem('adminUser');
+    // Also clean up any old localStorage tokens from previous versions
     localStorage.removeItem('adminToken');
     localStorage.removeItem('adminUser');
   };
