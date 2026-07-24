@@ -15,7 +15,15 @@ const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
 
-// Middlewares
+// Gzip compression — reduces API response sizes by ~70%
+try {
+  const compression = require('compression');
+  app.use(compression());
+} catch (e) {
+  // compression package not installed, skip silently
+}
+
+// CORS
 app.use(cors({
   origin: '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -25,15 +33,27 @@ app.use(cors({
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// Serve static uploaded files
-app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
+// Serve static uploaded files with aggressive caching (7 days)
+app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads'), {
+  maxAge: '7d',
+  etag: true,
+  lastModified: true
+}));
+
+// Short cache (30s) for public GET API routes — repeat visits are instant
+const cachePublicGet = (req, res, next) => {
+  if (req.method === 'GET') {
+    res.setHeader('Cache-Control', 'public, max-age=30, stale-while-revalidate=60');
+  }
+  next();
+};
 
 // Routes mapping
 app.use('/api/auth', authRoutes);
-app.use('/api/players', playerRoutes);
-app.use('/api/settings', settingsRoutes);
-app.use('/api/tournament', tournamentRoutes);
-app.use('/api/poll', pollRoutes);
+app.use('/api/players', cachePublicGet, playerRoutes);
+app.use('/api/settings', cachePublicGet, settingsRoutes);
+app.use('/api/tournament', cachePublicGet, tournamentRoutes);
+app.use('/api/poll', cachePublicGet, pollRoutes);
 app.use('/api/certificates', certificateRoutes);
 
 // Health check endpoint

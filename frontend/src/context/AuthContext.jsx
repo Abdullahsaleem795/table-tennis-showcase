@@ -4,47 +4,43 @@ import api from '../services/api';
 export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [token, setToken] = useState(null);
-  const [loading, setLoading] = useState(true);
+  // Initialize token synchronously from localStorage — no flicker
+  const storedToken = localStorage.getItem('adminToken');
+  const storedUser = localStorage.getItem('adminUser');
+
+  const [user, setUser] = useState(storedUser ? JSON.parse(storedUser) : null);
+  const [token, setToken] = useState(storedToken || null);
+  // If no token exists, skip the verify call entirely — set loading=false immediately
+  const [loading, setLoading] = useState(!!storedToken);
 
   useEffect(() => {
-    // Check if token and user data exists in local storage
-    const storedToken = localStorage.getItem('adminToken');
-    const storedUser = localStorage.getItem('adminUser');
+    // Only hit the network if we actually have a stored token
+    if (!storedToken) return;
 
-    if (storedToken && storedUser) {
-      setToken(storedToken);
-      setUser(JSON.parse(storedUser));
-      
-      // Verify token with backend
-      api.get('/auth/profile')
-        .then((res) => {
-          setUser(res.data);
-          localStorage.setItem('adminUser', JSON.stringify(res.data));
-        })
-        .catch(() => {
-          // Token is expired/invalid
-          logout();
-        })
-        .finally(() => {
-          setLoading(false);
-        });
-    } else {
-      setLoading(false);
-    }
-  }, []);
+    api.get('/auth/profile')
+      .then((res) => {
+        setUser(res.data);
+        localStorage.setItem('adminUser', JSON.stringify(res.data));
+      })
+      .catch(() => {
+        // Token is expired/invalid — clean up silently
+        logout();
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const login = async (username, password) => {
     try {
       const res = await api.post('/auth/login', { username, password });
-      const { token, user: loggedUser } = res.data;
-      
-      setToken(token);
+      const { token: newToken, user: loggedUser } = res.data;
+
+      setToken(newToken);
       setUser(loggedUser);
-      localStorage.setItem('adminToken', token);
+      localStorage.setItem('adminToken', newToken);
       localStorage.setItem('adminUser', JSON.stringify(loggedUser));
-      
+
       return { success: true };
     } catch (err) {
       const errMsg = err.response?.data?.message || 'Login failed. Please check credentials.';
