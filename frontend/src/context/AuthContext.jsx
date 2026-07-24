@@ -4,9 +4,12 @@ import api from '../services/api';
 export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  // Use sessionStorage instead of localStorage so the admin session
-  // is automatically cleared when the browser tab/window is closed.
-  // This means: if you close the browser and reopen it, you must log in again.
+  // ── One-time migration: wipe any tokens left in localStorage from old app versions ──
+  // This runs once immediately so no stale admin session can persist from old code.
+  localStorage.removeItem('adminToken');
+  localStorage.removeItem('adminUser');
+
+  // Use sessionStorage so the session clears automatically when the browser is closed.
   const storedToken = sessionStorage.getItem('adminToken');
   const storedUser = sessionStorage.getItem('adminUser');
 
