@@ -12,6 +12,7 @@
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^8.18.0",
     "axios": "^1.7.2",
+    "browser-image-compression": "^2.0.2",
     "framer-motion": "^11.2.10",
     "html2canvas": "^1.4.1",
     "jspdf": "^4.2.1",

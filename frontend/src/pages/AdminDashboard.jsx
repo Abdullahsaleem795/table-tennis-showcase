@@ -11,6 +11,7 @@ import {
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 import CertificateTemplate from '../components/CertificateTemplate';
+import imageCompression from 'browser-image-compression';
 
 const AdminDashboard = () => {
   const { isAuthenticated, logout, changePassword, loading: authLoading } = useContext(AuthContext);
@@ -456,22 +457,51 @@ const AdminDashboard = () => {
 
   const handleSavePlayer = async (e) => {
     e.preventDefault();
+    
+    // Check video size before compressing images
+    if (videoFile && videoFile.size > 4 * 1024 * 1024) {
+      showToast('Video file is too large! Vercel limits uploads to 4MB. Please use an external URL for large videos.', 'error');
+      return;
+    }
+    
     setSaving(true);
 
-    const formData = new FormData();
-    formData.append('name', name);
-    formData.append('email', email);
-    formData.append('rank', rank);
-    formData.append('playingStyle', playingStyle);
-    formData.append('playingHand', playingHand);
-    formData.append('biography', biography);
-    formData.append('country', country);
+    try {
+      const compressionOptions = {
+        maxSizeMB: 0.5,
+        maxWidthOrHeight: 1024,
+        useWebWorker: true
+      };
 
-    const achievementsArray = achievementsInput
-      .split('\n')
-      .map(item => item.trim())
-      .filter(item => item.length > 0);
-    formData.append('achievements', JSON.stringify(achievementsArray));
+      let compressedAvatar = avatarFile;
+      if (avatarFile && avatarFile.type.startsWith('image/')) {
+        compressedAvatar = await imageCompression(avatarFile, compressionOptions);
+      }
+      
+      const compressedGallery = [];
+      for (let i = 0; i < galleryFiles.length; i++) {
+        if (galleryFiles[i].type.startsWith('image/')) {
+          const compressed = await imageCompression(galleryFiles[i], compressionOptions);
+          compressedGallery.push(compressed);
+        } else {
+          compressedGallery.push(galleryFiles[i]);
+        }
+      }
+
+      const formData = new FormData();
+      formData.append('name', name);
+      formData.append('email', email);
+      formData.append('rank', rank);
+      formData.append('playingStyle', playingStyle);
+      formData.append('playingHand', playingHand);
+      formData.append('biography', biography);
+      formData.append('country', country);
+
+      const achievementsArray = achievementsInput
+        .split('\n')
+        .map(item => item.trim())
+        .filter(item => item.length > 0);
+      formData.append('achievements', JSON.stringify(achievementsArray));
 
     const equipmentData = {
       blade: { brand: bladeBrand, model: bladeModel },
@@ -490,12 +520,12 @@ const AdminDashboard = () => {
       }
     }
 
-    if (avatarFile) formData.append('avatar', avatarFile);
+    if (compressedAvatar) formData.append('avatar', compressedAvatar);
     if (deleteAvatar) formData.append('deleteAvatar', 'true');
     if (videoFile) formData.append('promoVideoFile', videoFile);
 
-    for (let i = 0; i < galleryFiles.length; i++) {
-      formData.append('gallery', galleryFiles[i]);
+    for (let i = 0; i < compressedGallery.length; i++) {
+      formData.append('gallery', compressedGallery[i]);
     }
     
     if (editingPlayerId) {
@@ -510,7 +540,6 @@ const AdminDashboard = () => {
       formData.append('existingGallery', JSON.stringify(existingGallery));
     }
 
-    try {
       if (editingPlayerId) {
         const response = await api.put(`/players/${editingPlayerId}`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
         const updatedPlayer = response.data;
