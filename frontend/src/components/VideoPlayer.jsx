@@ -41,7 +41,7 @@ const VideoPlayer = ({ video }) => {
   };
 
   const isLocal = video.type === 'local';
-  const videoUrl = isLocal ? (video.url.startsWith('http') ? video.url : `${api.defaults.baseURL || ''}${video.url}`) : getEmbedUrl(video.url);
+  const videoUrl = isLocal ? (video.url.startsWith('http') || video.url.startsWith('data:') || video.url.startsWith('blob:') ? video.url : `${api.defaults.baseURL || ''}${video.url}`) : getEmbedUrl(video.url);
 
   return (
     <div style={{
