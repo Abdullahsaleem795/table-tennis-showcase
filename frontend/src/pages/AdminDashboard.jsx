@@ -480,18 +480,35 @@ const AdminDashboard = () => {
     };
     formData.append('equipment', JSON.stringify(equipmentData));
 
-    const promoVideoData = { type: videoType, url: videoUrlInput };
-    formData.append('promoVideo', JSON.stringify(promoVideoData));
+    if (videoType === 'external') {
+      const promoVideoData = { type: videoType, url: videoUrlInput };
+      formData.append('promoVideo', JSON.stringify(promoVideoData));
+      if (editingPlayerId) formData.append('deleteVideo', 'true');
+    } else {
+      if (deleteVideo) {
+        formData.append('deleteVideo', 'true');
+      }
+    }
 
     if (avatarFile) formData.append('avatar', avatarFile);
     if (deleteAvatar) formData.append('deleteAvatar', 'true');
     if (videoFile) formData.append('promoVideoFile', videoFile);
-    if (deleteVideo) formData.append('deleteVideo', 'true');
 
     for (let i = 0; i < galleryFiles.length; i++) {
       formData.append('gallery', galleryFiles[i]);
     }
-    formData.append('existingGallery', JSON.stringify(existingGallery));
+    
+    if (editingPlayerId) {
+      const originalGallery = players.find(p => p._id === editingPlayerId || p.id === editingPlayerId)?.gallery || [];
+      const keptIndexes = [];
+      existingGallery.forEach(item => {
+        const idx = originalGallery.indexOf(item);
+        if (idx !== -1) keptIndexes.push(idx);
+      });
+      formData.append('keptGalleryIndexes', JSON.stringify(keptIndexes));
+    } else {
+      formData.append('existingGallery', JSON.stringify(existingGallery));
+    }
 
     try {
       if (editingPlayerId) {
@@ -1160,7 +1177,7 @@ const AdminDashboard = () => {
                         YouTube/Vimeo Link
                       </label>
                       <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                        <input type="radio" name="videoType" value="local" checked={videoType === 'local'} onChange={() => setVideoType('local')} />
+                        <input type="radio" name="videoType" value="local" checked={videoType === 'local' || videoType === 'base64'} onChange={() => setVideoType('local')} />
                         Upload Video File
                       </label>
                     </div>
@@ -1186,8 +1203,8 @@ const AdminDashboard = () => {
                             }
                           }} 
                         />
-                        {(videoFile || (videoUrlInput && videoType === 'local' && !deleteVideo)) && (
-                          <button type="button" className="btn btn-danger" style={{ padding: '8px' }} onClick={() => { setDeleteVideo(true); setVideoFile(null); }}>
+                        {((videoFile) || (videoType === 'base64' && !deleteVideo) || (videoUrlInput && videoType === 'local' && !deleteVideo)) && (
+                          <button type="button" className="btn btn-danger" style={{ padding: '8px' }} onClick={() => { setDeleteVideo(true); setVideoFile(null); setVideoType('local'); }}>
                             <FaTrash /> Remove
                           </button>
                         )}

@@ -217,17 +217,31 @@ module.exports = {
 
       // Handle gallery updates
       let finalGallery = existingPlayer.gallery ? [...existingPlayer.gallery] : [];
-      const galleryPayload = req.body.existingGallery || req.body.galleryList;
-      if (galleryPayload) {
+      
+      if (req.body.keptGalleryIndexes) {
         try {
-          const clientGallery = typeof galleryPayload === 'string' ? JSON.parse(galleryPayload) : galleryPayload;
-          const deletedFiles = finalGallery.filter(file => !clientGallery.includes(file));
-          deletedFiles.forEach(file => {
-            if (file.startsWith('/uploads/')) deleteLocalFile(file);
+          const keptIndexes = typeof req.body.keptGalleryIndexes === 'string' ? JSON.parse(req.body.keptGalleryIndexes) : req.body.keptGalleryIndexes;
+          const keptFiles = [];
+          finalGallery.forEach((file, index) => {
+            if (keptIndexes.includes(index)) {
+              keptFiles.push(file);
+            } else if (file.startsWith('/uploads/')) {
+              deleteLocalFile(file);
+            }
           });
-          finalGallery = clientGallery;
-        } catch (e) {
-          // ignore parsing error
+          finalGallery = keptFiles;
+        } catch (e) {}
+      } else {
+        const galleryPayload = req.body.existingGallery || req.body.galleryList;
+        if (galleryPayload) {
+          try {
+            const clientGallery = typeof galleryPayload === 'string' ? JSON.parse(galleryPayload) : galleryPayload;
+            const deletedFiles = finalGallery.filter(file => !clientGallery.includes(file));
+            deletedFiles.forEach(file => {
+              if (file.startsWith('/uploads/')) deleteLocalFile(file);
+            });
+            finalGallery = clientGallery;
+          } catch (e) {}
         }
       }
 
