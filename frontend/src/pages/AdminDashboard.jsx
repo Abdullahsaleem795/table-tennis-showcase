@@ -1150,6 +1150,51 @@ const AdminDashboard = () => {
                 </>
               )}
 
+              {formTab === 'equipment' && (
+                  <div style={{ marginTop: '10px', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '16px' }}>
+                    <h4 style={{ fontSize: '1rem', color: 'var(--color-primary)', marginBottom: '10px' }}>Promotional Video (Optional)</h4>
+                    <div style={{ display: 'flex', gap: '16px', marginBottom: '10px', color: 'var(--color-on-surface)' }}>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                        <input type="radio" name="videoType" value="external" checked={videoType === 'external'} onChange={() => setVideoType('external')} />
+                        YouTube/Vimeo Link
+                      </label>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                        <input type="radio" name="videoType" value="local" checked={videoType === 'local'} onChange={() => setVideoType('local')} />
+                        Upload Video File
+                      </label>
+                    </div>
+
+                    {videoType === 'external' ? (
+                      <input 
+                        type="url" 
+                        className="form-input" 
+                        value={videoUrlInput} 
+                        onChange={(e) => setVideoUrlInput(e.target.value)} 
+                        placeholder="https://www.youtube.com/watch?v=..." 
+                      />
+                    ) : (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                        <input 
+                          type="file" 
+                          accept="video/*" 
+                          className="form-input" 
+                          onChange={(e) => {
+                            if (e.target.files[0]) {
+                              setVideoFile(e.target.files[0]);
+                              setDeleteVideo(false);
+                            }
+                          }} 
+                        />
+                        {(videoFile || (videoUrlInput && videoType === 'local' && !deleteVideo)) && (
+                          <button type="button" className="btn btn-danger" style={{ padding: '8px' }} onClick={() => { setDeleteVideo(true); setVideoFile(null); }}>
+                            <FaTrash /> Remove
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+              )}
+
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '20px' }}>
                 <button type="button" onClick={() => setIsFormOpen(false)} className="btn btn-secondary">Cancel</button>
                 <button type="submit" disabled={saving} className="btn btn-primary">{saving ? 'Saving...' : 'Save Player'}</button>
