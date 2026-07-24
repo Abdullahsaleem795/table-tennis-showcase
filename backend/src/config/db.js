@@ -18,7 +18,7 @@ function initLocalDB() {
         users: [],
         players: [],
         settings: {
-          websiteName: "Championship Table Tennis Club",
+          websiteName: "Table Tennis Today",
           logoUrl: "",
           bannerUrl: "",
           aboutContent: "Welcome to our premier table tennis showcase. We feature elite table tennis players, highlighting their rankings, specialized equipment, styles, and training footage.",
@@ -30,7 +30,7 @@ function initLocalDB() {
             instagram: "https://instagram.com",
             youtube: "https://youtube.com"
           },
-          footerText: "© 2026 Championship Table Tennis Club. All rights reserved."
+          footerText: "© 2026 Table Tennis Today. All rights reserved."
         }
       };
       fs.writeFileSync(JSON_DB_PATH, JSON.stringify(defaultData, null, 2), 'utf8');

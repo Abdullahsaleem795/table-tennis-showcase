@@ -18,7 +18,7 @@ const Footer = () => {
   const facebook = settings?.socialLinks?.facebook || "https://facebook.com";
   const instagram = settings?.socialLinks?.instagram || "https://instagram.com";
   const youtube = settings?.socialLinks?.youtube || "https://youtube.com";
-  const footerText = settings?.footerText || "© 2026 Championship Table Tennis Club. All rights reserved.";
+  const footerText = settings?.footerText || "© 2026 Table Tennis Today. All rights reserved.";
 
   return (
     <footer style={{

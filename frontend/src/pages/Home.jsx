@@ -51,7 +51,7 @@ const Home = () => {
     }
   };
 
-  const websiteName = settings?.websiteName || "Championship Table Tennis Club";
+  const websiteName = settings?.websiteName || "Table Tennis Today";
   const aboutText = settings?.aboutContent || "Welcome to the ultimate Table Tennis Showcase. Discover our top-tier ranking players, learn about their custom equipment setups, and view training content.";
   const bannerUrl = settings?.bannerUrl ? (settings.bannerUrl.startsWith('http') ? settings.bannerUrl : `${api.defaults.baseURL || ''}${settings.bannerUrl}`) : '';
   

@@ -5,7 +5,7 @@ const dbConfig = require('../config/db');
 function formatSettings(s) {
   if (!s) return null;
   return {
-    websiteName: s.website_name || s.websiteName || 'Championship Table Tennis Club',
+    websiteName: s.website_name || s.websiteName || 'Table Tennis Today',
     logoUrl: s.logo_url || s.logoUrl || '',
     bannerUrl: s.banner_url || s.bannerUrl || '',
     aboutContent: s.about_content || s.aboutContent || 'Welcome to our premier table tennis showcase. We feature elite table tennis players, highlighting their rankings, specialized equipment, styles, and training footage.',
@@ -13,7 +13,7 @@ function formatSettings(s) {
     contactPhone: s.contact_phone || s.contactPhone || '+1 (555) 123-4567',
     location: s.location || '123 Ping Pong Way, Sports City',
     socialLinks: s.social_links || s.socialLinks || { facebook: 'https://facebook.com', instagram: 'https://instagram.com', youtube: 'https://youtube.com' },
-    footerText: s.footer_text || s.footerText || '© 2026 Championship Table Tennis Club. All rights reserved.'
+    footerText: s.footer_text || s.footerText || '© 2026 Table Tennis Today. All rights reserved.'
   };
 }
 

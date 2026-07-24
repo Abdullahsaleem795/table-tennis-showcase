@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const settingsSchema = new mongoose.Schema({
   websiteName: {
     type: String,
-    default: 'Championship Table Tennis Club'
+    default: 'Table Tennis Today'
   },
   logoUrl: {
     type: String,
@@ -36,7 +36,7 @@ const settingsSchema = new mongoose.Schema({
   },
   footerText: {
     type: String,
-    default: '© 2026 Championship Table Tennis Club. All rights reserved.'
+    default: '© 2026 Table Tennis Today. All rights reserved.'
   }
 });
 
