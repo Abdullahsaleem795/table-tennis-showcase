@@ -1,7 +1,7 @@
 import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { FaSearch, FaTrophy, FaUserCheck, FaCamera, FaVideo, FaTableTennis, FaArrowRight, FaAward } from 'react-icons/fa';
+import { FaSearch, FaTrophy, FaUserCheck, FaUser, FaCamera, FaVideo, FaTableTennis, FaArrowRight, FaAward } from 'react-icons/fa';
 import api from '../services/api';
 import PlayerCard from '../components/PlayerCard';
 import { CardSkeleton } from '../components/Skeleton';
