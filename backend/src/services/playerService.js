@@ -234,11 +234,15 @@ module.exports = {
           .select()
           .single();
 
-        if (!error && data) return formatPlayer(data, 0);
-        if (error) console.error('Supabase player insert notice:', error.message);
+        if (error) {
+          console.error('Supabase player insert error:', error.message);
+          throw new Error('Database Error: ' + error.message);
+        }
       } catch (err) {
         console.error('Supabase create player error:', err.message);
+        throw err;
       }
+      return; // Stop execution, do not fall back to MongoDB/JSON
     }
 
     if (dbConfig.isMongoConnected()) {
@@ -305,10 +309,15 @@ module.exports = {
         if (!error && data) {
           return formatPlayer(data, votesMap[id] || 0);
         }
-        if (error) console.error('Supabase update error:', error.message);
+        if (error) {
+          console.error('Supabase update error:', error.message);
+          throw new Error('Database Error: ' + error.message);
+        }
       } catch (err) {
         console.error('Supabase update player error:', err.message);
+        throw err;
       }
+      return; // Stop execution, do not fall back to MongoDB/JSON
     }
 
     if (dbConfig.isMongoConnected()) {

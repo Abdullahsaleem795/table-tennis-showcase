@@ -115,7 +115,7 @@ module.exports = {
       const videoFile = (req.files && req.files.video && req.files.video[0]) || (req.files && req.files.promoVideoFile && req.files.promoVideoFile[0]);
       if (videoFile) {
         const videoBase64 = fileToBase64(videoFile);
-        if (file && file.path) fs.unlinkSync(file.path);
+        if (videoFile.path) fs.unlinkSync(videoFile.path);
         promoVideo = {
           type: 'base64',
           url: videoBase64
