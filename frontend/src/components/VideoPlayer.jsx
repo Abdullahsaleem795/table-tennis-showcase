@@ -71,7 +71,8 @@ const VideoPlayer = ({ video }) => {
             height: '100%',
             objectFit: 'contain'
           }}
-          preload="metadata"
+          preload="none"
+          poster="https://images.unsplash.com/photo-1534158914592-062992fbe900?auto=format&fit=crop&q=80&w=1200&h=675"
         />
       ) : (
         <iframe

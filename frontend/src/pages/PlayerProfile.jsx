@@ -202,7 +202,7 @@ const PlayerProfile = () => {
             boxShadow: '0 8px 32px rgba(0,0,0,0.4)'
           }}>
             {avatarUrl ? (
-              <img src={avatarUrl} alt={player.name} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 15%' }} />
+              <img src={avatarUrl} alt={player.name} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 15%' }} />
             ) : (
               <span style={{ fontSize: '100px', color: 'var(--color-surface-container-high)' }}>👤</span>
             )}
@@ -449,7 +449,7 @@ const PlayerProfile = () => {
                   }}
                   onClick={() => setLightboxIndex(idx)}
                 >
-                  <img src={image} alt={`Gallery item ${idx}`} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top center', transition: 'transform 0.2s' }} onMouseEnter={(e)=>e.target.style.transform='scale(1.05)'} onMouseLeave={(e)=>e.target.style.transform='scale(1)'} />
+                  <img src={image} alt={`Gallery item ${idx}`} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top center', transition: 'transform 0.2s' }} onMouseEnter={(e)=>e.target.style.transform='scale(1.05)'} onMouseLeave={(e)=>e.target.style.transform='scale(1)'} />
                   <div style={{ position: 'absolute', right: '10px', top: '10px', backgroundColor: 'rgba(0,0,0,0.6)', padding: '4px', borderRadius: '50%', color: 'var(--color-on-surface)', display: 'flex' }}>
                     <FaCamera style={{ fontSize: '12px' }} />
                   </div>
