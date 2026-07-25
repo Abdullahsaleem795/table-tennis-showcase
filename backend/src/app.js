@@ -64,6 +64,39 @@ app.get('/health', (req, res) => {
   res.status(200).json({ status: 'OK', timestamp: new Date() });
 });
 
+// TEMPORARY diagnostic route — isolates which query shape is actually slow
+// in production. Remove after diagnosing the /api/players latency issue.
+app.get('/api/_diag', async (req, res, next) => {
+  try {
+    const { supabase } = require('./config/supabase');
+    const results = {};
+
+    let t = Date.now();
+    await supabase.from('players').select('*').order('rank', { ascending: true });
+    results.plain_select = Date.now() - t;
+
+    t = Date.now();
+    await supabase.from('players').select('*').order('rank', { ascending: true }).range(0, 11);
+    results.select_with_range = Date.now() - t;
+
+    t = Date.now();
+    await supabase.from('players').select('id', { count: 'exact', head: true });
+    results.count_head_only = Date.now() - t;
+
+    t = Date.now();
+    await supabase.from('players').select('*', { count: 'exact' }).order('rank', { ascending: true }).range(0, 11);
+    results.select_range_and_exact_count_combined = Date.now() - t;
+
+    t = Date.now();
+    await supabase.from('settings').select('*').eq('id', 'poll_votes').maybeSingle();
+    results.votes_map_query = Date.now() - t;
+
+    res.json(results);
+  } catch (err) {
+    next(err);
+  }
+});
+
 // Register Global Error Handler
 app.use(errorHandler);
 
