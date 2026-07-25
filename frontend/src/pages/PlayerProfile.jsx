@@ -5,6 +5,7 @@ import { FaChevronLeft, FaMedal, FaTrophy, FaHandPaper, FaGlobe, FaChevronRight,
 import api from '../services/api';
 import VideoPlayer from '../components/VideoPlayer';
 import { ProfileSkeleton } from '../components/Skeleton';
+import { getThumbUrl, fallbackToFullImage } from '../utils/media';
 
 const PlayerProfile = () => {
   const { id } = useParams();
@@ -449,7 +450,7 @@ const PlayerProfile = () => {
                   }}
                   onClick={() => setLightboxIndex(idx)}
                 >
-                  <img src={image} alt={`Gallery item ${idx}`} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top center', transition: 'transform 0.2s' }} onMouseEnter={(e)=>e.target.style.transform='scale(1.05)'} onMouseLeave={(e)=>e.target.style.transform='scale(1)'} />
+                  <img src={getThumbUrl(image)} onError={fallbackToFullImage(image)} alt={`Gallery item ${idx}`} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top center', transition: 'transform 0.2s' }} onMouseEnter={(e)=>e.target.style.transform='scale(1.05)'} onMouseLeave={(e)=>e.target.style.transform='scale(1)'} />
                   <div style={{ position: 'absolute', right: '10px', top: '10px', backgroundColor: 'rgba(0,0,0,0.6)', padding: '4px', borderRadius: '50%', color: 'var(--color-on-surface)', display: 'flex' }}>
                     <FaCamera style={{ fontSize: '12px' }} />
                   </div>

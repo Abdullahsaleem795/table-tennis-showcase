@@ -474,16 +474,29 @@ const AdminDashboard = () => {
         fileType: 'image/webp'
       };
 
+      // Small companion thumbnail — used for cards/lists so those views don't
+      // pay for the full 1024px image just to render a ~280px thumbnail.
+      const thumbOptions = {
+        maxSizeMB: 0.12,
+        maxWidthOrHeight: 400,
+        useWebWorker: true,
+        fileType: 'image/webp'
+      };
+
       let compressedAvatar = avatarFile;
+      let avatarThumb = null;
       if (avatarFile && avatarFile.type.startsWith('image/')) {
         compressedAvatar = await imageCompression(avatarFile, compressionOptions);
+        avatarThumb = await imageCompression(avatarFile, thumbOptions);
       }
-      
+
       const compressedGallery = [];
+      const galleryThumbs = [];
       for (let i = 0; i < galleryFiles.length; i++) {
         if (galleryFiles[i].type.startsWith('image/')) {
           const compressed = await imageCompression(galleryFiles[i], compressionOptions);
           compressedGallery.push(compressed);
+          galleryThumbs.push(await imageCompression(galleryFiles[i], thumbOptions));
         } else {
           compressedGallery.push(galleryFiles[i]);
         }
@@ -522,11 +535,15 @@ const AdminDashboard = () => {
     }
 
     if (compressedAvatar) formData.append('avatar', compressedAvatar);
+    if (avatarThumb) formData.append('avatarThumb', avatarThumb);
     if (deleteAvatar) formData.append('deleteAvatar', 'true');
     if (videoFile) formData.append('promoVideoFile', videoFile);
 
     for (let i = 0; i < compressedGallery.length; i++) {
       formData.append('gallery', compressedGallery[i]);
+    }
+    for (let i = 0; i < galleryThumbs.length; i++) {
+      formData.append('galleryThumbs', galleryThumbs[i]);
     }
     
     if (editingPlayerId) {

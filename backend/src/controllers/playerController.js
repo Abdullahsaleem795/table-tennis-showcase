@@ -3,32 +3,55 @@ const path = require('path');
 const playerService = require('../services/playerService');
 const { supabase, isSupabaseConfigured } = require('../config/supabase');
 
-async function uploadToSupabase(file, folder = 'uploads') {
+async function uploadFileToSupabase(file, fileName) {
+  const fileData = file.buffer || fs.readFileSync(file.path);
+  const { error } = await supabase.storage
+    .from('showcase-media')
+    .upload(fileName, fileData, {
+      contentType: file.mimetype,
+      upsert: false
+    });
+
+  if (error) {
+    console.error("Supabase storage upload error:", error.message);
+    return '';
+  }
+
+  const { data: publicUrlData } = supabase.storage
+    .from('showcase-media')
+    .getPublicUrl(fileName);
+
+  return publicUrlData.publicUrl;
+}
+
+// Uploads the full-size file and, if a pre-compressed thumbnail was sent
+// alongside it, a companion thumb using the SAME base filename prefixed with
+// "thumb-". This lets the frontend derive a thumbnail URL from the full URL
+// by string manipulation alone — no extra DB column/migration needed, and
+// old records without a thumb counterpart just fall back to the full image.
+async function uploadToSupabase(file, folder = 'uploads', thumbFile = null) {
   if (!file) return '';
   if (!isSupabaseConfigured()) return '';
-  
+
   try {
     const fileExt = path.extname(file.originalname);
-    const fileName = `${folder}/${Date.now()}-${Math.round(Math.random() * 1E9)}${fileExt}`;
-    const fileData = file.buffer || fs.readFileSync(file.path);
-    
-    const { data, error } = await supabase.storage
-      .from('showcase-media')
-      .upload(fileName, fileData, {
-        contentType: file.mimetype,
-        upsert: false
-      });
-      
-    if (error) {
-      console.error("Supabase storage upload error:", error.message);
-      return '';
+    const suffix = `${Date.now()}-${Math.round(Math.random() * 1E9)}`;
+    const fileName = `${folder}/${suffix}${fileExt}`;
+
+    const url = await uploadFileToSupabase(file, fileName);
+    if (!url) return '';
+
+    if (thumbFile) {
+      try {
+        const thumbExt = path.extname(thumbFile.originalname) || fileExt;
+        await uploadFileToSupabase(thumbFile, `${folder}/thumb-${suffix}${thumbExt}`);
+      } catch (thumbErr) {
+        // Thumbnail is an optimization, not required — full image still works.
+        console.error("Error uploading thumbnail to Supabase:", thumbErr);
+      }
     }
-    
-    const { data: publicUrlData } = supabase.storage
-      .from('showcase-media')
-      .getPublicUrl(fileName);
-      
-    return publicUrlData.publicUrl;
+
+    return url;
   } catch (err) {
     console.error("Error uploading to Supabase:", err);
     return '';
@@ -48,10 +71,10 @@ function fileToBase64(file) {
   }
 }
 
-async function processFile(file, folder = 'media') {
+async function processFile(file, folder = 'media', thumbFile = null) {
   if (!file) return '';
   if (isSupabaseConfigured()) {
-    return await uploadToSupabase(file, folder);
+    return await uploadToSupabase(file, folder, thumbFile);
   }
   return fileToBase64(file);
 }
@@ -136,19 +159,25 @@ module.exports = {
       let avatarUrl = '';
       if (req.files && req.files.avatar && req.files.avatar[0]) {
         const file = req.files.avatar[0];
-        avatarUrl = await processFile(file, 'avatars');
-        // Delete local temp file
+        const thumbFile = req.files.avatarThumb && req.files.avatarThumb[0];
+        avatarUrl = await processFile(file, 'avatars', thumbFile);
+        // Delete local temp files
         if (file.path) fs.unlinkSync(file.path);
+        if (thumbFile && thumbFile.path) fs.unlinkSync(thumbFile.path);
       }
 
-      // Handle gallery files
+      // Handle gallery files (thumbs are paired with full files by index)
       const gallery = [];
       if (req.files && req.files.gallery) {
-        for (const file of req.files.gallery) {
-          const url = await processFile(file, 'gallery');
+        const thumbs = req.files.galleryThumbs || [];
+        for (let i = 0; i < req.files.gallery.length; i++) {
+          const file = req.files.gallery[i];
+          const thumbFile = thumbs[i];
+          const url = await processFile(file, 'gallery', thumbFile);
           if (url) gallery.push(url);
-          // Delete local temp file
+          // Delete local temp files
           if (file.path) fs.unlinkSync(file.path);
+          if (thumbFile && thumbFile.path) fs.unlinkSync(thumbFile.path);
         }
       }
 
@@ -244,12 +273,14 @@ module.exports = {
       // Handle avatar file
       if (req.files && req.files.avatar && req.files.avatar[0]) {
         const file = req.files.avatar[0];
+        const thumbFile = req.files.avatarThumb && req.files.avatarThumb[0];
         // Delete old local avatar if it was stored on disk
         if (existingPlayer.avatarUrl && existingPlayer.avatarUrl.startsWith('/uploads/')) {
           deleteLocalFile(existingPlayer.avatarUrl);
         }
-        updates.avatarUrl = await processFile(file, 'avatars');
+        updates.avatarUrl = await processFile(file, 'avatars', thumbFile);
         if (file.path) fs.unlinkSync(file.path);
+        if (thumbFile && thumbFile.path) fs.unlinkSync(thumbFile.path);
       } else if (req.body.deleteAvatar === 'true') {
         if (existingPlayer.avatarUrl && existingPlayer.avatarUrl.startsWith('/uploads/')) {
           deleteLocalFile(existingPlayer.avatarUrl);
@@ -287,12 +318,16 @@ module.exports = {
         }
       }
 
-      // Append new gallery uploads
+      // Append new gallery uploads (thumbs paired with full files by index)
       if (req.files && req.files.gallery) {
-        for (const file of req.files.gallery) {
-          const url = await processFile(file, 'gallery');
+        const thumbs = req.files.galleryThumbs || [];
+        for (let i = 0; i < req.files.gallery.length; i++) {
+          const file = req.files.gallery[i];
+          const thumbFile = thumbs[i];
+          const url = await processFile(file, 'gallery', thumbFile);
           if (url) finalGallery.push(url);
           if (file.path) fs.unlinkSync(file.path);
+          if (thumbFile && thumbFile.path) fs.unlinkSync(thumbFile.path);
         }
       }
       updates.gallery = finalGallery;

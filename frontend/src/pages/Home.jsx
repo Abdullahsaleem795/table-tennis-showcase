@@ -5,16 +5,19 @@ import { FaSearch, FaTrophy, FaUserCheck, FaUser, FaCamera, FaVideo, FaTableTenn
 import api from '../services/api';
 import PlayerCard from '../components/PlayerCard';
 import { CardSkeleton } from '../components/Skeleton';
+import { getThumbUrl, fallbackToFullImage } from '../utils/media';
 
-const TableTennisHero = lazy(() => import('../components/TableTennisHero'));
+const Hero3D = lazy(() => import('../components/Hero3D'));
 
 const Home = () => {
-  const [players, setPlayers] = useState([]);
   const [settings, setSettings] = useState(null);
-  const [stats, setStats] = useState({ totalPlayers: 0, totalPhotos: 0, totalVideos: 0 });
+  const [stats, setStats] = useState({
+    totalPlayers: 0, totalPhotos: 0, totalVideos: 0,
+    featured: [], topVoted: [], latest: null, previewPhotos: []
+  });
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
-  
+
   // Poll State
   const [pollSettings, setPollSettings] = useState(null);
 
@@ -23,14 +26,15 @@ const Home = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [playersRes, settingsRes, statsRes, pollRes] = await Promise.all([
-          api.get('/players'),
+        // /players/stats now carries everything the homepage needs
+        // (featured/topVoted/latest/previewPhotos) in one small payload,
+        // instead of fetching the entire player roster just to pick a few.
+        const [settingsRes, statsRes, pollRes] = await Promise.all([
           api.get('/settings'),
           api.get('/players/stats'),
           api.get('/poll')
         ]);
-        
-        setPlayers(playersRes.data);
+
         setSettings(settingsRes.data);
         setStats(statsRes.data);
         setPollSettings(pollRes.data);
@@ -40,7 +44,7 @@ const Home = () => {
         setLoading(false);
       }
     };
-    
+
     fetchData();
   }, []);
 
@@ -55,28 +59,21 @@ const Home = () => {
   const aboutText = settings?.aboutContent || "Welcome to the ultimate Table Tennis Showcase. Discover our top-tier ranking players, learn about their custom equipment setups, and view training content.";
   const bannerUrl = settings?.bannerUrl ? (settings.bannerUrl.startsWith('http') ? settings.bannerUrl : `${api.defaults.baseURL || ''}${settings.bannerUrl}`) : '';
   
-  const featuredPlayers = players.slice(0, 3);
-  const latestPlayer = players.length > 0 ? [...players].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0] : null;
+  const featuredPlayers = stats.featured || [];
+  const latestPlayer = stats.latest || null;
+  const votedStandings = stats.topVoted || [];
+  const latestAvatarUrl = latestPlayer?.avatarUrl
+    ? (latestPlayer.avatarUrl.startsWith('http') || latestPlayer.avatarUrl.startsWith('data:')
+      ? latestPlayer.avatarUrl
+      : `${api.defaults.baseURL || ''}${latestPlayer.avatarUrl}`)
+    : '';
 
-  // Compute voted players standings
-  const votedStandings = [...players]
-    .sort((a, b) => (b.votes || 0) - (a.votes || 0))
-    .slice(0, 3); // top 3
-
-  const previewPhotos = [];
-  players.forEach(p => {
-    if (p.gallery && Array.isArray(p.gallery)) {
-      p.gallery.forEach(img => {
-        if (previewPhotos.length < 6) {
-          previewPhotos.push({
-            imgUrl: img.startsWith('http') ? img : `${api.defaults.baseURL || ''}${img}`,
-            playerId: p._id || p.id,
-            playerName: p.name
-          });
-        }
-      });
-    }
-  });
+  const previewPhotos = (stats.previewPhotos || []).map(photo => ({
+    ...photo,
+    imgUrl: photo.imgUrl.startsWith('http') || photo.imgUrl.startsWith('data:')
+      ? photo.imgUrl
+      : `${api.defaults.baseURL || ''}${photo.imgUrl}`
+  }));
 
   return (
     <div style={{ position: 'relative', overflow: 'hidden' }}>
@@ -189,7 +186,7 @@ const Home = () => {
                 <span>Loading interactive scene...</span>
               </div>
             }>
-              <TableTennisHero showOverlay={false} />
+              <Hero3D />
             </Suspense>
           </div>
         </div>
@@ -386,7 +383,8 @@ const Home = () => {
               <div className="m3-card interactive" style={{ padding: '24px', display: 'flex', gap: '20px', alignItems: 'center' }}>
                 {latestPlayer.avatarUrl ? (
                   <img
-                    src={latestPlayer.avatarUrl.startsWith('http') || latestPlayer.avatarUrl.startsWith('data:') ? latestPlayer.avatarUrl : `${api.defaults.baseURL || ''}${latestPlayer.avatarUrl}`}
+                    src={getThumbUrl(latestAvatarUrl)}
+                    onError={fallbackToFullImage(latestAvatarUrl)}
                     alt={latestPlayer.name}
                     style={{ width: '100px', height: '120px', borderRadius: '12px', objectFit: 'cover', objectPosition: 'center 15%', flexShrink: 0 }}
                   />
@@ -475,7 +473,8 @@ const Home = () => {
                 onClick={() => navigate(`/player/${photo.playerId}`)}
               >
                 <img
-                  src={photo.imgUrl}
+                  src={getThumbUrl(photo.imgUrl)}
+                  onError={fallbackToFullImage(photo.imgUrl)}
                   alt={photo.playerName}
                   style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top center', transition: 'transform 0.3s' }}
                   onMouseEnter={(e)=>e.target.style.transform='scale(1.05)'}

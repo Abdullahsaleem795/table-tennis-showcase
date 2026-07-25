@@ -40,10 +40,13 @@ app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads'), {
   lastModified: true
 }));
 
-// Short cache (30s) for public GET API routes — repeat visits are instant
+// Cache for public GET API routes: browsers/CDN serve straight from cache for
+// 60s, then keep serving the stale response instantly for up to 5 more
+// minutes while revalidating in the background — repeat visits are instant
+// and admin edits still show up within a minute.
 const cachePublicGet = (req, res, next) => {
   if (req.method === 'GET') {
-    res.setHeader('Cache-Control', 'public, max-age=30, stale-while-revalidate=60');
+    res.setHeader('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
   }
   next();
 };

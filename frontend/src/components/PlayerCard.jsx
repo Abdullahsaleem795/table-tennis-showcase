@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FaUser, FaMedal, FaChevronRight } from 'react-icons/fa';
 import api from '../services/api';
+import { getThumbUrl, fallbackToFullImage } from '../utils/media';
 
 const getAvatarUrl = (url) => {
   if (!url) return '';
@@ -13,6 +14,9 @@ const getAvatarUrl = (url) => {
 
 const PlayerCard = ({ player }) => {
   const avatarUrl = getAvatarUrl(player.avatarUrl);
+  // Cards only need a small thumbnail; falls back to the full image for
+  // records uploaded before thumbnails existed.
+  const avatarThumbUrl = getThumbUrl(avatarUrl);
 
   const getStyleColor = (style) => {
     switch (style) {
@@ -78,7 +82,8 @@ const PlayerCard = ({ player }) => {
       }}>
         {avatarUrl ? (
           <img
-            src={avatarUrl}
+            src={avatarThumbUrl}
+            onError={fallbackToFullImage(avatarUrl)}
             alt={player.name}
             loading="lazy"
             style={{

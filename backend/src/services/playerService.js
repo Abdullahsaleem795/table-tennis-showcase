@@ -434,6 +434,9 @@ module.exports = {
   },
 
   // Compute stats from a single getAll() call instead of calling getAll() twice
+  // Single full-roster fetch, reused for counts AND the small home-page
+  // slices (featured/topVoted/latest/previewPhotos) so the client never has
+  // to download every player's full record just to render a homepage.
   async getStats() {
     const players = await this.getAll();
     let totalPhotos = 0;
@@ -443,7 +446,37 @@ module.exports = {
       if (p.gallery && Array.isArray(p.gallery)) totalPhotos += p.gallery.length;
       if (p.promoVideo && p.promoVideo.url) totalVideos++;
     });
-    return { totalPlayers: players.length, totalPhotos, totalVideos };
+
+    const featured = players.slice(0, 3);
+
+    const topVoted = [...players]
+      .sort((a, b) => (b.votes || 0) - (a.votes || 0))
+      .slice(0, 3);
+
+    const latest = players.length > 0
+      ? [...players].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0]
+      : null;
+
+    const previewPhotos = [];
+    for (const p of players) {
+      if (previewPhotos.length >= 6) break;
+      if (p.gallery && Array.isArray(p.gallery)) {
+        for (const img of p.gallery) {
+          if (previewPhotos.length >= 6) break;
+          previewPhotos.push({ imgUrl: img, playerId: p._id || p.id, playerName: p.name });
+        }
+      }
+    }
+
+    return {
+      totalPlayers: players.length,
+      totalPhotos,
+      totalVideos,
+      featured,
+      topVoted,
+      latest,
+      previewPhotos
+    };
   },
 
   async getTotalPhotos() {
