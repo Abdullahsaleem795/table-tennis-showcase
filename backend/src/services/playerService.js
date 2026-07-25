@@ -161,21 +161,38 @@ module.exports = {
     const votesMap = await getVotesMap();
 
     if (isSupabaseConfigured()) {
-      let query = supabase.from('players').select('*', { count: 'exact' }).order('rank', { ascending: true });
-      if (search) {
-        if (!isNaN(parseInt(search, 10))) {
-          query = query.or(`name.ilike.%${search}%,rank.eq.${parseInt(search, 10)}`);
-        } else {
-          query = query.ilike('name', `%${search}%`);
+      // Applying the same filters to a data query and a separate count query.
+      // Combining `count: 'exact'` with `.range()` in one query forces
+      // PostgREST to compute an exact count via a window function, which
+      // interacts very badly with Row Level Security policies — a 12-row
+      // table went from ~0.5s to 9-56s. A plain select is fast; a
+      // `head: true` count-only query (no row data) run in parallel is fast
+      // too. Doing both separately avoids the slow combined query plan.
+      const applyFilters = (q) => {
+        if (search) {
+          if (!isNaN(parseInt(search, 10))) {
+            q = q.or(`name.ilike.%${search}%,rank.eq.${parseInt(search, 10)}`);
+          } else {
+            q = q.ilike('name', `%${search}%`);
+          }
         }
-      }
-      if (style && style !== 'All') {
-        query = query.eq('playing_style', style);
-      }
+        if (style && style !== 'All') {
+          q = q.eq('playing_style', style);
+        }
+        return q;
+      };
+
+      let dataQuery = applyFilters(supabase.from('players').select('*').order('rank', { ascending: true }));
       if (isPaginated) {
-        query = query.range(offset, offset + limitNum - 1);
+        dataQuery = dataQuery.range(offset, offset + limitNum - 1);
       }
-      const { data, count, error } = await query;
+
+      const countPromise = isPaginated
+        ? applyFilters(supabase.from('players').select('id', { count: 'exact', head: true }))
+        : Promise.resolve({ count: 0 });
+
+      const [{ data, error }, { count }] = await Promise.all([dataQuery, countPromise]);
+
       if (!error && data) {
         const formatted = data.map(p => formatPlayer(p, votesMap[p.id] || 0));
         if (isPaginated) {

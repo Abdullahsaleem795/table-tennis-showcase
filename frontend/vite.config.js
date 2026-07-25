@@ -25,10 +25,16 @@ export default defineConfig({
           'motion': ['framer-motion'],
           // Icons in its own chunk (largest dependency)
           'icons': ['react-icons'],
-          // PDF generation (only used in admin) in its own chunk
-          'pdf': ['html2canvas', 'jspdf'],
           // HTTP client
           'axios': ['axios'],
+          // NOTE: html2canvas/jspdf are intentionally NOT forced into a
+          // manual chunk here. They're only imported by AdminDashboard.jsx
+          // (already React.lazy-loaded), so leaving them out lets Rollup
+          // bundle them into that same lazy chunk. Forcing them into a
+          // separate top-level chunk made Vite's modulepreload heuristic
+          // treat it as always-needed, injecting a 593KB preload into
+          // every page's <head> — including for anonymous visitors who
+          // never touch the admin certificate export.
         },
       },
     },
