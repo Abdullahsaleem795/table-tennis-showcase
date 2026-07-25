@@ -35,7 +35,8 @@ async function uploadBase64ToSupabase(base64String, folder = 'uploads') {
       .from('showcase-media')
       .upload(fileName, buffer, {
         contentType: mimeType,
-        upsert: false
+        upsert: false,
+        cacheControl: '31536000'
       });
       
     if (error) {

@@ -9,7 +9,12 @@ async function uploadFileToSupabase(file, fileName) {
     .from('showcase-media')
     .upload(fileName, fileData, {
       contentType: file.mimetype,
-      upsert: false
+      upsert: false,
+      // Filenames are unique per upload (timestamp + random suffix) and never
+      // overwritten, so it's safe to cache them forever. Without this,
+      // Supabase defaults to "no-cache" and every page view re-downloads
+      // every image from origin.
+      cacheControl: '31536000'
     });
 
   if (error) {
