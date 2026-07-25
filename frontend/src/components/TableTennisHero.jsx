@@ -255,8 +255,8 @@ export default function TableTennisHero({
       ball.castShadow = true;
       scene.add(ball);
 
-      orbitCenter = restOffset.clone().add(new THREE.Vector3(0, 0.05, 0));
-      orbitRadius = { x: 0.5, z: 0.34 };
+      orbitCenter = restOffset.clone().add(new THREE.Vector3(0, 0.05, 0.28));
+      orbitRadius = { x: 0.48, z: 0.36 };
       angle = 0;
       orbitSpeed = 1.1;
       ballMode = 'orbit';
