@@ -6,7 +6,7 @@ import api from '../services/api';
 import PlayerCard from '../components/PlayerCard';
 import { CardSkeleton } from '../components/Skeleton';
 
-const Hero3D = lazy(() => import('../components/Hero3D'));
+const TableTennisHero = lazy(() => import('../components/TableTennisHero'));
 
 const Home = () => {
   const [players, setPlayers] = useState([]);
@@ -90,7 +90,6 @@ const Home = () => {
         display: 'flex',
         alignItems: 'center',
         padding: '80px 24px',
-        backgroundColor: 'var(--color-surface-container)',
         overflow: 'hidden'
       }}>
         <div className="container-width" style={{
@@ -179,13 +178,18 @@ const Home = () => {
           </div>
           
           {/* 3D Reactive Hero Asset */}
-          <div style={{ height: '500px', width: '100%', position: 'relative' }}>
+          <div style={{
+            position: 'relative',
+            minHeight: '420px',
+            height: '60vh',
+            width: '100%',
+          }}>
             <Suspense fallback={
               <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-outline)' }}>
                 <span>Loading interactive scene...</span>
               </div>
             }>
-              <Hero3D />
+              <TableTennisHero showOverlay={false} />
             </Suspense>
           </div>
         </div>
