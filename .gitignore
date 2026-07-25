@@ -11,8 +11,8 @@ yarn-error.log*
 .env.test.local
 .env.production.local
 
-# Backend local database and uploads
-backend/data/db.json
+# Backend local database, backups and uploads
+backend/data/
 backend/uploads/
 uploads/
 
