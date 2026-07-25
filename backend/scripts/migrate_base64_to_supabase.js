@@ -14,7 +14,8 @@ async function uploadBase64ToSupabase(base64String, folder = 'uploads') {
   }
   
   try {
-    const matches = base64String.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+    // mimeType char class needs digits too (e.g. "video/mp4" has a "4")
+    const matches = base64String.match(/^data:([A-Za-z0-9\-+\/]+);base64,(.+)$/);
     if (!matches || matches.length !== 3) {
       console.error("Invalid base64 string format.");
       return base64String;
@@ -28,6 +29,9 @@ async function uploadBase64ToSupabase(base64String, folder = 'uploads') {
     if (mimeType.includes('jpeg') || mimeType.includes('jpg')) ext = '.jpg';
     if (mimeType.includes('webp')) ext = '.webp';
     if (mimeType.includes('svg')) ext = '.svg';
+    if (mimeType.includes('mp4')) ext = '.mp4';
+    if (mimeType.includes('quicktime')) ext = '.mov';
+    if (mimeType.includes('webm')) ext = '.webm';
     
     const fileName = `${folder}/migrated-${Date.now()}-${Math.round(Math.random() * 1E9)}${ext}`;
     
@@ -64,8 +68,9 @@ async function runMigration() {
   }
   
   try {
-    // Get all players without pagination
-    const { players } = await playerService.getAll(1, 10000, '');
+    // getAll() with page+limit set returns { data, total, page, totalPages }
+    // — not { players } — so this was silently fetching `undefined` before.
+    const { data: players } = await playerService.getAll(1, 10000, '');
     console.log(`Found ${players.length} players to check.`);
     
     let updatedCount = 0;
@@ -99,6 +104,18 @@ async function runMigration() {
         }
       }
       
+      // Check promo video — the original migration pass never covered this,
+      // which is how a ~4.5MB base64 video ended up sitting directly in the
+      // players table, bloating every single query that reads player rows.
+      if (player.promoVideo && player.promoVideo.url && player.promoVideo.url.startsWith('data:video/')) {
+        console.log(`[Player: ${player.name}] Migrating promo video...`);
+        const newUrl = await uploadBase64ToSupabase(player.promoVideo.url, 'videos');
+        if (newUrl && newUrl !== player.promoVideo.url) {
+          player.promoVideo = { type: 'supabase', url: newUrl };
+          needsUpdate = true;
+        }
+      }
+
       if (needsUpdate) {
         console.log(`[Player: ${player.name}] Saving updated record...`);
         await playerService.update(player.id, player);
