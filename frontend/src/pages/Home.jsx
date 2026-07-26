@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { FaSearch, FaTrophy, FaUserCheck, FaUser, FaCamera, FaVideo, FaTableTennis, FaArrowRight, FaAward } from 'react-icons/fa';
 import api from '../services/api';
 import PlayerCard from '../components/PlayerCard';
+import AnnouncementModal from '../components/AnnouncementModal';
 import { CardSkeleton } from '../components/Skeleton';
 import { getThumbUrl, fallbackToFullImage } from '../utils/media';
 
@@ -77,6 +78,7 @@ const Home = () => {
 
   return (
     <div style={{ position: 'relative', overflow: 'hidden' }}>
+      <AnnouncementModal />
       <div className="bg-glow bg-glow-1"></div>
       <div className="bg-glow bg-glow-2"></div>
 
