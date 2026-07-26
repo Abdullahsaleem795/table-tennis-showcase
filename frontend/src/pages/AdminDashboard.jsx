@@ -1131,6 +1131,11 @@ const AdminDashboard = () => {
                     <label className="form-label">Country</label>
                     <input type="text" className="form-input" value={country} onChange={(e) => setCountry(e.target.value)} />
                   </div>
+
+                  <div>
+                    <label className="form-label">Biography</label>
+                    <textarea className="form-input" rows="5" value={biography} onChange={(e) => setBiography(e.target.value)} placeholder="A short bio about the player..." />
+                  </div>
                 </>
               )}
 
