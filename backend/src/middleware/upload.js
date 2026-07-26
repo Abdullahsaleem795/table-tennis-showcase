@@ -26,14 +26,10 @@ const storage = process.env.VERCEL ? multer.memoryStorage() : multer.diskStorage
 
 // File filter validation
 const fileFilter = (req, file, cb) => {
-  const filetypes = /jpeg|jpg|png|webp|gif|mp4|mov|avi|webm/;
-  const mimetype = filetypes.test(file.mimetype);
-  const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
-
-  if (mimetype && extname) {
+  if (file.mimetype.startsWith('image/') || file.mimetype.startsWith('video/')) {
     return cb(null, true);
   }
-  cb(new Error('Only images (jpg, jpeg, png, webp, gif) and videos (mp4, mov, avi, webm) are allowed!'));
+  cb(new Error('Only images and videos are allowed!'));
 };
 
 const upload = multer({
