@@ -1,13 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { FaTimes, FaCalendarAlt, FaClock, FaFire } from 'react-icons/fa';
+import { FaTimes, FaCalendarAlt, FaClock, FaMapMarkerAlt, FaFire } from 'react-icons/fa';
 
 const SEEN_KEY = 'seen_announcement_ffl_smash_s2';
 
 const AnnouncementModal = () => {
   const [visible, setVisible] = useState(false);
-  const navigate = useNavigate();
 
   useEffect(() => {
     if (sessionStorage.getItem(SEEN_KEY)) return;
@@ -145,7 +143,7 @@ const AnnouncementModal = () => {
                 style={{
                   display: 'flex',
                   gap: '14px',
-                  marginBottom: '28px',
+                  marginBottom: '14px',
                 }}
               >
                 <div style={{ flex: 1, backgroundColor: 'var(--color-surface-container)', borderRadius: 'var(--radius-md)', padding: '16px 8px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
@@ -160,21 +158,9 @@ const AnnouncementModal = () => {
                 </div>
               </div>
 
-              <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                <button
-                  onClick={() => { close(); navigate('/tournament'); }}
-                  className="btn btn-primary"
-                  style={{ flex: 1, minWidth: '140px', justifyContent: 'center' }}
-                >
-                  See Tournament Details
-                </button>
-                <button
-                  onClick={close}
-                  className="btn btn-secondary"
-                  style={{ flex: 1, minWidth: '100px', justifyContent: 'center' }}
-                >
-                  Maybe Later
-                </button>
+              <div style={{ backgroundColor: 'var(--color-surface-container)', borderRadius: 'var(--radius-md)', padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
+                <FaMapMarkerAlt style={{ color: 'var(--color-secondary)', fontSize: '16px', flexShrink: 0 }} />
+                <span style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--color-on-surface)' }}>FFL Staff Club Table Tennis Room</span>
               </div>
             </div>
           </motion.div>
