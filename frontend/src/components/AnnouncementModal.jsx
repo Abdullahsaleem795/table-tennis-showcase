@@ -2,21 +2,15 @@ import React, { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { FaTimes, FaCalendarAlt, FaClock, FaMapMarkerAlt, FaFire } from 'react-icons/fa';
 
-const SEEN_KEY = 'seen_announcement_ffl_smash_s2';
-
 const AnnouncementModal = () => {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    if (sessionStorage.getItem(SEEN_KEY)) return;
     const timer = setTimeout(() => setVisible(true), 700);
     return () => clearTimeout(timer);
   }, []);
 
-  const close = () => {
-    setVisible(false);
-    sessionStorage.setItem(SEEN_KEY, 'true');
-  };
+  const close = () => setVisible(false);
 
   return (
     <AnimatePresence>
