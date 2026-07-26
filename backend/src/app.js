@@ -11,6 +11,7 @@ const settingsRoutes = require('./routes/settingsRoutes');
 const tournamentRoutes = require('./routes/tournamentRoutes');
 const pollRoutes = require('./routes/pollRoutes');
 const certificateRoutes = require('./routes/certificateRoutes');
+const contactRoutes = require('./routes/contactRoutes');
 const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
@@ -58,6 +59,7 @@ app.use('/api/settings', cachePublicGet, settingsRoutes);
 app.use('/api/tournament', cachePublicGet, tournamentRoutes);
 app.use('/api/poll', cachePublicGet, pollRoutes);
 app.use('/api/certificates', certificateRoutes);
+app.use('/api/contact', contactRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {

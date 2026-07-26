@@ -1,41 +1,5 @@
-const nodemailer = require('nodemailer');
 const playerService = require('../services/playerService');
-
-// In-memory transport cache so we don't recreate ethereal accounts on every request if using test mode
-let cachedTransporter = null;
-let testAccountDetails = null;
-
-async function getTransporter() {
-  if (cachedTransporter) return cachedTransporter;
-
-  // If real SMTP credentials exist in env, use them
-  if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
-    cachedTransporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: process.env.SMTP_PORT || 587,
-      secure: process.env.SMTP_PORT === '465',
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
-    });
-    return cachedTransporter;
-  }
-
-  // Otherwise, create a test Ethereal account
-  const testAccount = await nodemailer.createTestAccount();
-  testAccountDetails = testAccount;
-  cachedTransporter = nodemailer.createTransport({
-    host: "smtp.ethereal.email",
-    port: 587,
-    secure: false,
-    auth: {
-      user: testAccount.user,
-      pass: testAccount.pass,
-    },
-  });
-  return cachedTransporter;
-}
+const emailService = require('../services/emailService');
 
 exports.sendCertificate = async (req, res) => {
   try {
@@ -115,20 +79,12 @@ exports.sendCertificate = async (req, res) => {
       </div>
     `;
 
-    const transporter = await getTransporter();
-
-    const info = await transporter.sendMail({
-      from: '"FFL Smash Tournament" <no-reply@fflsmash.com>',
+    const { previewUrl } = await emailService.sendMail({
+      from: emailService.buildFromAddress('FFL Smash Tournament'),
       to: player.email,
       subject: `Your ${titleText} - FFL Smash`,
       html: htmlContent,
     });
-
-    let previewUrl = null;
-    if (!process.env.SMTP_HOST) {
-      previewUrl = nodemailer.getTestMessageUrl(info);
-      console.log('Test Certificate Preview URL: %s', previewUrl);
-    }
 
     res.json({ success: true, message: 'Certificate sent successfully', previewUrl });
   } catch (error) {

@@ -19,7 +19,7 @@ const Contact = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.name || !formData.email || !formData.message) {
       setToast({ message: 'Please fill in name, email, and message.', type: 'error' });
@@ -27,12 +27,15 @@ const Contact = () => {
     }
 
     setSending(true);
-    // Mimic API post for sending message
-    setTimeout(() => {
-      setSending(false);
+    try {
+      await api.post('/contact', formData);
       setToast({ message: 'Thank you! Your message has been sent successfully.', type: 'success' });
       setFormData({ name: '', email: '', subject: '', message: '' });
-    }, 1500);
+    } catch (err) {
+      setToast({ message: err.response?.data?.error || 'Failed to send message. Please try again.', type: 'error' });
+    } finally {
+      setSending(false);
+    }
   };
 
   const contactEmail = settings?.contactEmail || "info@championshiptt.com";
