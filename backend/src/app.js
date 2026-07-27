@@ -52,12 +52,24 @@ const cachePublicGet = (req, res, next) => {
   next();
 };
 
+// Poll status/voting state must never be cached anywhere (browser, Vercel
+// edge, CDN) — it's admin-controlled and time-sensitive (voting deadline,
+// active/published flags). A cached stale snapshot here means admin changes
+// silently fail to show up for visitors, and even for the admin's own
+// dashboard right after saving.
+const noStore = (req, res, next) => {
+  if (req.method === 'GET') {
+    res.setHeader('Cache-Control', 'no-store');
+  }
+  next();
+};
+
 // Routes mapping
 app.use('/api/auth', authRoutes);
 app.use('/api/players', cachePublicGet, playerRoutes);
 app.use('/api/settings', cachePublicGet, settingsRoutes);
 app.use('/api/tournament', cachePublicGet, tournamentRoutes);
-app.use('/api/poll', cachePublicGet, pollRoutes);
+app.use('/api/poll', noStore, pollRoutes);
 app.use('/api/certificates', certificateRoutes);
 app.use('/api/contact', contactRoutes);
 
