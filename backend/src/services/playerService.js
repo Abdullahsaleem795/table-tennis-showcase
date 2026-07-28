@@ -98,21 +98,17 @@ async function recalculateRanks() {
     try {
       const { data: players } = await supabase
         .from('players')
-        .select('id, points, rank')
-        .order('points', { ascending: false, nullsFirst: false });
+        .select('id, points, rank, created_at')
+        .order('points', { ascending: false, nullsFirst: false })
+        .order('created_at', { ascending: true }); // Tie-breaker
 
       if (players && players.length > 0) {
         const toUpdate = [];
-        let currentRank = 1;
-        let currentPoints = players[0].points;
 
         players.forEach((p, index) => {
-          if (p.points < currentPoints) {
-            currentRank = index + 1; // Standard competition ranking (e.g. 1, 2, 2, 4)
-            currentPoints = p.points;
-          }
-          if (p.rank !== currentRank) {
-            toUpdate.push({ id: p.id, rank: currentRank });
+          const expectedRank = index + 1; // Strictly unique rank to prevent DB crash
+          if (p.rank !== expectedRank) {
+            toUpdate.push({ id: p.id, rank: expectedRank });
           }
         });
 
@@ -121,7 +117,7 @@ async function recalculateRanks() {
           const tempPromises = toUpdate.map((u, i) => supabase.from('players').update({ rank: -(1000 + i) }).eq('id', u.id));
           await Promise.all(tempPromises);
           
-          // Phase 2: Set to correct final tied ranks
+          // Phase 2: Set to correct final unique ranks
           const finalPromises = toUpdate.map(u => supabase.from('players').update({ rank: u.rank }).eq('id', u.id));
           await Promise.all(finalPromises);
         }
