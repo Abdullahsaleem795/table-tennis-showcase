@@ -179,7 +179,7 @@ module.exports = {
       const applyFilters = (q) => {
         if (search) {
           if (!isNaN(parseInt(search, 10))) {
-            q = q.or(`name.ilike.%${search}%,rank.eq.${parseInt(search, 10)}`);
+            q = q.or(`name.ilike.%${search}%,points.eq.${parseInt(search, 10)}`);
           } else {
             q = q.ilike('name', `%${search}%`);
           }

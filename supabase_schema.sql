@@ -41,11 +41,7 @@ CREATE TABLE IF NOT EXISTS public.settings (
   footer_text TEXT
 );
 
--- 4. Seed default admin user (admin / AdminPassword123!)
-INSERT INTO public.users (id, username, password)
-VALUES ('admin_id_1', 'admin', '$2a$10$x4EO.Q8cThIBXW9Eji5iVeqCQkwAUlOCpl/p2GCy4t0wX8O9Ri71e')
-ON CONFLICT (username) DO UPDATE SET password = EXCLUDED.password;
-
+-- 4. Seed default admin user (Removed for security. See documentation on creating the first admin account.)
 -- 5. Row Level Security Policies
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.players ENABLE ROW LEVEL SECURITY;

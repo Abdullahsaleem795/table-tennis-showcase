@@ -16,6 +16,10 @@ exports.sendContactMessage = async (req, res) => {
     if (!name || !email || !message) {
       return res.status(400).json({ error: 'Name, email, and message are required' });
     }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ error: 'Invalid email address format' });
+    }
 
     const settings = await settingsService.getSettings();
     const adminEmail = settings.contactEmail;
@@ -42,6 +46,6 @@ exports.sendContactMessage = async (req, res) => {
     res.json({ success: true, message: 'Message sent successfully', previewUrl });
   } catch (error) {
     console.error('Error sending contact message:', error);
-    res.status(500).json({ error: 'Failed to send message', details: error.message });
+    res.status(500).json({ error: 'Failed to send message. Please try again later.' });
   }
 };

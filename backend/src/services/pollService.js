@@ -73,10 +73,46 @@ module.exports = {
     return cleanData;
   },
 
+  async getVotedIps() {
+    if (isSupabaseConfigured()) {
+      try {
+        const { data } = await supabase.from('settings').select('social_links').eq('id', 'poll_voters').maybeSingle();
+        if (data && data.social_links && Array.isArray(data.social_links)) return data.social_links;
+      } catch (e) {}
+    }
+    const local = dbConfig.getLocalData();
+    return local.pollVoters || [];
+  },
+
+  async addVotedIp(ip) {
+    const ips = await this.getVotedIps();
+    if (!ips.includes(ip)) {
+      ips.push(ip);
+      if (isSupabaseConfigured()) {
+        try {
+          await supabase.from('settings').upsert([{ id: 'poll_voters', social_links: ips }]);
+        } catch (e) {}
+      }
+      const local = dbConfig.getLocalData();
+      local.pollVoters = ips;
+      dbConfig.saveLocalData(local);
+    }
+  },
+
   async resetPoll() {
     // Clear votes
     await playerService.resetVotes();
     
+    // Clear voted IPs
+    if (isSupabaseConfigured()) {
+      try {
+        await supabase.from('settings').upsert([{ id: 'poll_voters', social_links: [] }]);
+      } catch (e) {}
+    }
+    const local = dbConfig.getLocalData();
+    local.pollVoters = [];
+    dbConfig.saveLocalData(local);
+
     // Generate new poll ID and set it inactive by default, preserving other settings or just resetting to defaults.
     const newPollId = Date.now().toString();
     const resetData = {
@@ -89,10 +125,17 @@ module.exports = {
     return await this.updatePollSettings(resetData);
   },
 
-  async vote(playerId) {
+  async vote(playerId, ip) {
     const settings = await this.getPollSettings();
     if (!settings.active) {
       throw new Error("Voting is currently closed.");
+    }
+
+    if (ip) {
+      const votedIps = await this.getVotedIps();
+      if (votedIps.includes(ip)) {
+        throw new Error("You have already voted in this poll.");
+      }
     }
 
     // Check expiration timer
@@ -113,6 +156,13 @@ module.exports = {
     }
 
     // Increment votes
-    return await playerService.incrementVote(playerId);
+    const result = await playerService.incrementVote(playerId);
+    
+    // Track IP
+    if (ip) {
+      await this.addVotedIp(ip);
+    }
+    
+    return result;
   }
 };

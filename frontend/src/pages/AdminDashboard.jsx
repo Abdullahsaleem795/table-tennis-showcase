@@ -561,12 +561,8 @@ const AdminDashboard = () => {
       if (editingPlayerId) {
         const response = await api.put(`/players/${editingPlayerId}`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
         const updatedPlayer = response.data;
-        // Instantly update local state — no full re-fetch needed
-        if (updatedPlayer && updatedPlayer._id) {
-          setPlayers(prev => prev.map(p =>
-            (p._id === updatedPlayer._id || p.id === updatedPlayer.id) ? updatedPlayer : p
-          ).sort((a, b) => a.rank - b.rank));
-        }
+        // Force a full refresh so any point-based rank shifts are reflected
+        fetchDashboardData();
         setIsFormOpen(false);
         showToast('Player profile updated!');
       } else {

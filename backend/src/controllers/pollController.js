@@ -23,7 +23,8 @@ module.exports = {
   async submitVote(req, res, next) {
     try {
       const { id } = req.params;
-      const updatedPlayer = await pollService.vote(id);
+      const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+      const updatedPlayer = await pollService.vote(id, ip);
       res.status(200).json({ message: "Vote registered successfully!", player: updatedPlayer });
     } catch (err) {
       res.status(400).json({ message: err.message });

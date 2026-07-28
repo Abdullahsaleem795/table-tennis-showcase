@@ -24,12 +24,15 @@ const storage = process.env.VERCEL ? multer.memoryStorage() : multer.diskStorage
   }
 });
 
-// File filter validation
 const fileFilter = (req, file, cb) => {
-  if (file.mimetype.startsWith('image/') || file.mimetype.startsWith('video/')) {
+  const allowedExtensions = /\.(jpg|jpeg|png|gif|webp|mp4|webm|mov)$/i;
+  const extMatch = allowedExtensions.test(path.extname(file.originalname));
+  const mimeMatch = file.mimetype.startsWith('image/') || file.mimetype.startsWith('video/');
+
+  if (extMatch && mimeMatch) {
     return cb(null, true);
   }
-  cb(new Error('Only images and videos are allowed!'));
+  cb(new Error('Only valid image and video files are allowed!'));
 };
 
 const upload = multer({
