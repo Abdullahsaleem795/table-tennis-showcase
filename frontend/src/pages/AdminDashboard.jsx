@@ -52,7 +52,7 @@ const AdminDashboard = () => {
   // Player Form Fields State
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [rank, setRank] = useState('');
+  const [points, setPoints] = useState('');
   const [playingStyle, setPlayingStyle] = useState('Attack');
   const [playingHand, setPlayingHand] = useState('Right Hand');
   const [biography, setBiography] = useState('');
@@ -377,7 +377,7 @@ const AdminDashboard = () => {
     setEditingPlayerId(null);
     setName('');
     setEmail('');
-    setRank((players.length + 1).toString());
+    setPoints('0');
     setPlayingStyle('Attack');
     setPlayingHand('Right Hand');
     setBiography('');
@@ -412,7 +412,7 @@ const AdminDashboard = () => {
     setEditingPlayerId(p._id || p.id);
     setName(p.name || '');
     setEmail(p.email || '');
-    setRank(p.rank?.toString() || '');
+    setPoints(p.points?.toString() || '0');
     setPlayingStyle(p.playingStyle || 'Attack');
     setPlayingHand(p.playingHand || 'Right Hand');
     setBiography(p.biography || '');
@@ -505,7 +505,7 @@ const AdminDashboard = () => {
       const formData = new FormData();
       formData.append('name', name);
       formData.append('email', email);
-      formData.append('rank', rank);
+      formData.append('points', points);
       formData.append('playingStyle', playingStyle);
       formData.append('playingHand', playingHand);
       formData.append('biography', biography);
@@ -729,6 +729,7 @@ const AdminDashboard = () => {
                 <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', backgroundColor: 'var(--color-surface-container)' }}>
                   <th style={{ padding: '14px 16px', width: '70px' }}></th>
                   <th style={{ padding: '14px 16px', fontSize: '0.8rem', textTransform: 'uppercase', color: 'var(--color-on-surface-variant)' }}>Rank</th>
+                  <th style={{ padding: '14px 16px', fontSize: '0.8rem', textTransform: 'uppercase', color: 'var(--color-on-surface-variant)' }}>Points</th>
                   <th style={{ padding: '14px 16px', fontSize: '0.8rem', textTransform: 'uppercase', color: 'var(--color-on-surface-variant)' }}>Player Name</th>
                   <th style={{ padding: '14px 16px', fontSize: '0.8rem', textTransform: 'uppercase', color: 'var(--color-on-surface-variant)' }}>Style / Hand</th>
                   <th style={{ padding: '14px 16px', fontSize: '0.8rem', textTransform: 'uppercase', color: 'var(--color-on-surface-variant)' }}>Country</th>
@@ -748,6 +749,7 @@ const AdminDashboard = () => {
                       </div>
                     </td>
                     <td style={{ padding: '14px 16px', fontWeight: 700, color: 'var(--color-primary)' }}>#{p.rank}</td>
+                    <td style={{ padding: '14px 16px', fontWeight: 600, color: 'var(--color-on-surface)' }}>{p.points || 0}</td>
                     <td style={{ padding: '14px 16px', fontWeight: 600, color: 'var(--color-on-surface)' }}>{p.name}</td>
                     <td style={{ padding: '14px 16px', color: 'var(--color-on-surface)', fontSize: '0.85rem' }}>{p.playingStyle} • {p.playingHand}</td>
                     <td style={{ padding: '14px 16px', color: 'var(--color-on-surface-variant)', fontSize: '0.85rem' }}>{p.country || 'N/A'}</td>
@@ -1097,8 +1099,8 @@ const AdminDashboard = () => {
                       <input type="text" required className="form-input" value={name} onChange={(e) => setName(e.target.value)} />
                     </div>
                     <div>
-                      <label className="form-label">Club Rank # *</label>
-                      <input type="number" required min="1" className="form-input" value={rank} onChange={(e) => setRank(e.target.value)} />
+                      <label className="form-label">Points *</label>
+                      <input type="number" required min="0" className="form-input" value={points} onChange={(e) => setPoints(e.target.value)} />
                     </div>
                   </div>
 

@@ -62,6 +62,7 @@ const Rankings = () => {
               <thead>
                 <tr style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.08)' }}>
                   <th style={{ padding: '16px', color: 'var(--color-on-surface-variant)', fontWeight: 600, fontSize: '0.85rem', textTransform: 'uppercase' }}>Rank</th>
+                  <th style={{ padding: '16px', color: 'var(--color-on-surface-variant)', fontWeight: 600, fontSize: '0.85rem', textTransform: 'uppercase' }}>Points</th>
                   <th style={{ padding: '16px', color: 'var(--color-on-surface-variant)', fontWeight: 600, fontSize: '0.85rem', textTransform: 'uppercase' }}>Player</th>
                   <th style={{ padding: '16px', color: 'var(--color-on-surface-variant)', fontWeight: 600, fontSize: '0.85rem', textTransform: 'uppercase' }}>Playing Style</th>
                   <th style={{ padding: '16px', color: 'var(--color-on-surface-variant)', fontWeight: 600, fontSize: '0.85rem', textTransform: 'uppercase' }}>Hand</th>
@@ -104,6 +105,11 @@ const Rankings = () => {
                         }}>
                           {player.rank}
                         </span>
+                      </td>
+
+                      {/* Points */}
+                      <td style={{ padding: '16px', fontWeight: 600, color: 'var(--color-primary)' }}>
+                        {player.points || 0}
                       </td>
 
                       {/* Photo + Name */}

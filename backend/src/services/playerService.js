@@ -73,6 +73,7 @@ function formatPlayer(p, votes = 0) {
     name: p.name,
     email: p.email || '',
     rank: p.rank,
+    points: p.points || 0,
     playingStyle: p.playing_style || p.playingStyle || 'Attack',
     playingHand: p.playing_hand || p.playingHand || 'Right Hand',
     biography: p.biography || '',
@@ -91,61 +92,59 @@ function formatPlayer(p, votes = 0) {
   };
 }
 
-// ─── OPTIMIZED rank conflict resolution ──────────────────────────────────────
-// OLD: Sequential loop → N Supabase round-trips (one per player)
-// NEW: Single batch upsert → 1 Supabase round-trip regardless of player count
-async function resolveRankConflicts(targetRank, targetPlayerId = null) {
-  targetRank = parseInt(targetRank, 10);
-  if (isNaN(targetRank) || targetRank < 1) targetRank = 1;
-
+// ─── OPTIMIZED points-based ranking ──────────────────────────────────────
+async function recalculateRanks() {
   if (isSupabaseConfigured()) {
     try {
-      const { data: allPlayers } = await supabase
+      const { data: players } = await supabase
         .from('players')
-        .select('id, rank')
-        .order('rank', { ascending: true });
+        .select('id, points, rank')
+        .order('points', { ascending: false, nullsFirst: false });
 
-      if (!allPlayers) return;
-
-      const otherPlayers = allPlayers.filter(p => p.id !== targetPlayerId);
-      const conflict = otherPlayers.some(p => p.rank === targetRank);
-
-      if (conflict) {
-        // Build a batch of all rank shifts needed in one go
-        const toUpdate = otherPlayers
-          .filter(p => p.rank >= targetRank)
-          .map(p => ({ id: p.id, rank: p.rank + 1 }));
-
+      if (players) {
+        const toUpdate = [];
+        players.forEach((p, index) => {
+          const expectedRank = index + 1;
+          if (p.rank !== expectedRank) {
+            toUpdate.push({ id: p.id, rank: expectedRank });
+          }
+        });
         if (toUpdate.length > 0) {
-          // Single upsert call instead of N individual updates
           await supabase.from('players').upsert(toUpdate, { onConflict: 'id' });
         }
       }
-    } catch (e) {
-      console.error('Supabase rank resolution notice:', e.message);
+    } catch (err) {
+      console.error('Supabase recalculate ranks error:', err.message);
     }
   } else if (dbConfig.isMongoConnected()) {
-    const query = { rank: targetRank };
-    if (targetPlayerId) query._id = { $ne: targetPlayerId };
-    const conflict = await Player.findOne(query);
-    if (conflict) {
-      if (targetPlayerId) await Player.findByIdAndUpdate(targetPlayerId, { rank: 999999 });
-      const gteQuery = { rank: { $gte: targetRank } };
-      if (targetPlayerId) gteQuery._id = { $ne: targetPlayerId };
-      // Mongo bulk write — single operation
-      await Player.updateMany(gteQuery, { $inc: { rank: 1 } });
+    const players = await Player.find({}).sort({ points: -1 }).select('_id rank');
+    const bulkOps = [];
+    players.forEach((p, index) => {
+      const expectedRank = index + 1;
+      if (p.rank !== expectedRank) {
+        bulkOps.push({
+          updateOne: {
+            filter: { _id: p._id },
+            update: { rank: expectedRank }
+          }
+        });
+      }
+    });
+    if (bulkOps.length > 0) {
+      await Player.bulkWrite(bulkOps);
     }
   } else {
     const data = dbConfig.getLocalData();
-    const players = data.players;
-    const conflict = players.find(p => (p._id !== targetPlayerId && p.id !== targetPlayerId) && p.rank === targetRank);
-    if (conflict) {
-      players.forEach(p => {
-        const pId = p._id || p.id;
-        if (pId !== targetPlayerId && p.rank >= targetRank) {
-          p.rank = p.rank + 1;
-        }
-      });
+    let updated = false;
+    data.players.sort((a, b) => (b.points || 0) - (a.points || 0));
+    data.players.forEach((p, index) => {
+      const expectedRank = index + 1;
+      if (p.rank !== expectedRank) {
+        p.rank = expectedRank;
+        updated = true;
+      }
+    });
+    if (updated) {
       dbConfig.saveLocalData(data);
     }
   }
@@ -261,7 +260,6 @@ module.exports = {
   },
 
   async create(playerData) {
-    await resolveRankConflicts(playerData.rank);
     const newId = generateId();
 
     if (isSupabaseConfigured()) {
@@ -269,7 +267,8 @@ module.exports = {
         const payload = {
           id: newId,
           name: playerData.name,
-          rank: parseInt(playerData.rank, 10),
+          rank: 999999, // temp rank
+          points: parseInt(playerData.points, 10) || 0,
           playing_style: playerData.playingStyle,
           playing_hand: playerData.playingHand,
           biography: playerData.biography || '',
@@ -292,17 +291,24 @@ module.exports = {
           console.error('Supabase player insert error:', error.message);
           throw new Error('Database Error: ' + error.message);
         }
+        await recalculateRanks();
+        // Refetch to get updated rank
+        const { data: updatedData } = await supabase.from('players').select('*').eq('id', newId).single();
+        return formatPlayer(updatedData, 0);
       } catch (err) {
         console.error('Supabase create player error:', err.message);
         throw err;
       }
-      return; // Stop execution, do not fall back to MongoDB/JSON
     }
 
     if (dbConfig.isMongoConnected()) {
+      playerData.rank = 999999;
+      playerData.points = parseInt(playerData.points, 10) || 0;
       const newPlayer = new Player(playerData);
       const saved = await newPlayer.save();
-      return formatPlayer(saved, 0);
+      await recalculateRanks();
+      const p = await Player.findById(saved._id);
+      return formatPlayer(p, 0);
     } else {
       const data = dbConfig.getLocalData();
       const newPlayer = {
@@ -310,7 +316,8 @@ module.exports = {
         id: newId,
         name: playerData.name,
         email: playerData.email || '',
-        rank: parseInt(playerData.rank, 10),
+        rank: 999999,
+        points: parseInt(playerData.points, 10) || 0,
         playingStyle: playerData.playingStyle,
         playingHand: playerData.playingHand,
         biography: playerData.biography || '',
@@ -324,16 +331,17 @@ module.exports = {
       };
       data.players.push(newPlayer);
       dbConfig.saveLocalData(data);
-      return formatPlayer(newPlayer, 0);
+      await recalculateRanks();
+      const p = dbConfig.getLocalData().players.find(x => x.id === newId);
+      return formatPlayer(p, 0);
     }
   },
 
   async update(id, playerData) {
-    if (playerData.rank !== undefined) {
-      playerData.rank = parseInt(playerData.rank, 10);
-      if (!isNaN(playerData.rank)) {
-        await resolveRankConflicts(playerData.rank, id);
-      }
+    let requiresRecalc = false;
+    if (playerData.points !== undefined) {
+      playerData.points = parseInt(playerData.points, 10) || 0;
+      requiresRecalc = true;
     }
 
     const votesMap = await getVotesMap();
@@ -342,7 +350,7 @@ module.exports = {
       try {
         const payload = {};
         if (playerData.name !== undefined) payload.name = playerData.name;
-        if (playerData.rank !== undefined) payload.rank = parseInt(playerData.rank, 10);
+        if (playerData.points !== undefined) payload.points = playerData.points;
         if (playerData.playingStyle !== undefined) payload.playing_style = playerData.playingStyle;
         if (playerData.playingHand !== undefined) payload.playing_hand = playerData.playingHand;
         if (playerData.biography !== undefined) payload.biography = playerData.biography;
@@ -361,6 +369,11 @@ module.exports = {
           .single();
 
         if (!error && data) {
+          if (requiresRecalc) {
+            await recalculateRanks();
+            const { data: updatedData } = await supabase.from('players').select('*').eq('id', id).single();
+            return formatPlayer(updatedData, votesMap[id] || 0);
+          }
           return formatPlayer(data, votesMap[id] || 0);
         }
         if (error) {
@@ -371,12 +384,13 @@ module.exports = {
         console.error('Supabase update player error:', err.message);
         throw err;
       }
-      return; // Stop execution, do not fall back to MongoDB/JSON
     }
 
     if (dbConfig.isMongoConnected()) {
-      const updated = await Player.findByIdAndUpdate(id, playerData, { new: true });
-      return formatPlayer(updated, votesMap[id] || 0);
+      await Player.findByIdAndUpdate(id, playerData, { new: true });
+      if (requiresRecalc) await recalculateRanks();
+      const p = await Player.findById(id);
+      return formatPlayer(p, votesMap[id] || 0);
     } else {
       const data = dbConfig.getLocalData();
       const idx = data.players.findIndex(p => p._id === id || p.id === id);
@@ -385,7 +399,9 @@ module.exports = {
       const updated = { ...existing, ...playerData };
       data.players[idx] = updated;
       dbConfig.saveLocalData(data);
-      return formatPlayer(updated, votesMap[id] || 0);
+      if (requiresRecalc) await recalculateRanks();
+      const p = dbConfig.getLocalData().players.find(x => x.id === id);
+      return formatPlayer(p, votesMap[id] || 0);
     }
   },
 
@@ -410,7 +426,10 @@ module.exports = {
           .select()
           .maybeSingle();
 
-        if (data) return formatPlayer(data, 0);
+        if (data) {
+          await recalculateRanks();
+          return formatPlayer(data, 0);
+        }
       } catch (err) {
         console.error('Supabase delete player error:', err.message);
       }
@@ -418,6 +437,7 @@ module.exports = {
 
     if (dbConfig.isMongoConnected()) {
       const del = await Player.findByIdAndDelete(id);
+      await recalculateRanks();
       return formatPlayer(del, 0);
     } else {
       const data = dbConfig.getLocalData();
@@ -426,6 +446,7 @@ module.exports = {
       const deletedPlayer = data.players[idx];
       data.players.splice(idx, 1);
       dbConfig.saveLocalData(data);
+      await recalculateRanks();
       return formatPlayer(deletedPlayer, 0);
     }
   },

@@ -400,7 +400,7 @@ const Home = () => {
                   </div>
                 )}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  <span style={{ color: 'var(--color-primary)', fontWeight: 700, fontSize: '0.85rem' }}>RANK #{latestPlayer.rank}</span>
+                  <span style={{ color: 'var(--color-primary)', fontWeight: 700, fontSize: '0.85rem' }}>RANK #{latestPlayer.rank} • {latestPlayer.points || 0} pts</span>
                   <h3 style={{ fontSize: '1.4rem' }}>{latestPlayer.name}</h3>
                   <p style={{ color: 'var(--color-on-surface-variant)', fontSize: '0.85rem' }}>Style: {latestPlayer.playingStyle} • {latestPlayer.playingHand}</p>
                   <Link to={`/player/${latestPlayer._id || latestPlayer.id}`} className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: '0.8rem', width: 'fit-content' }}>

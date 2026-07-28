@@ -64,7 +64,7 @@ const PlayerCard = ({ player }) => {
         letterSpacing: '0.02em'
       }}>
         <FaMedal style={{ color: player.rank === 1 ? 'var(--color-tertiary)' : player.rank === 2 ? 'var(--color-outline)' : player.rank === 3 ? 'var(--color-primary)' : 'var(--color-on-surface-variant)' }} />
-        RANK #{player.rank}
+        RANK #{player.rank} • {player.points || 0} pts
       </div>
 
       {/* Photo Container */}

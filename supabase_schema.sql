@@ -12,7 +12,8 @@ CREATE TABLE IF NOT EXISTS public.users (
 CREATE TABLE IF NOT EXISTS public.players (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
-  rank INT UNIQUE NOT NULL,
+  rank INT NOT NULL,
+  points INT DEFAULT 0,
   playing_style TEXT NOT NULL,
   playing_hand TEXT NOT NULL,
   biography TEXT,
@@ -62,3 +63,7 @@ CREATE POLICY "Allow public read settings" ON public.settings FOR SELECT USING (
 CREATE POLICY "Allow service_role all users" ON public.users FOR ALL USING (true);
 CREATE POLICY "Allow service_role all players" ON public.players FOR ALL USING (true);
 CREATE POLICY "Allow service_role all settings" ON public.settings FOR ALL USING (true);
+
+-- Run this to update an existing database:
+-- ALTER TABLE public.players DROP CONSTRAINT IF EXISTS players_rank_key;
+-- ALTER TABLE public.players ADD COLUMN IF NOT EXISTS points INT DEFAULT 0;
