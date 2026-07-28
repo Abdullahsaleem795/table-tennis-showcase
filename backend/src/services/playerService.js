@@ -110,7 +110,8 @@ async function recalculateRanks() {
           }
         });
         if (toUpdate.length > 0) {
-          await supabase.from('players').upsert(toUpdate, { onConflict: 'id' });
+          const updatePromises = toUpdate.map(u => supabase.from('players').update({ rank: u.rank }).eq('id', u.id));
+          await Promise.all(updatePromises);
         }
       }
     } catch (err) {
