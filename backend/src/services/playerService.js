@@ -110,8 +110,13 @@ async function recalculateRanks() {
           }
         });
         if (toUpdate.length > 0) {
-          const updatePromises = toUpdate.map(u => supabase.from('players').update({ rank: u.rank }).eq('id', u.id));
-          await Promise.all(updatePromises);
+          // Phase 1: Set to temporary negative ranks to avoid unique constraint conflicts
+          const tempPromises = toUpdate.map(u => supabase.from('players').update({ rank: -u.rank }).eq('id', u.id));
+          await Promise.all(tempPromises);
+          
+          // Phase 2: Set to correct final ranks
+          const finalPromises = toUpdate.map(u => supabase.from('players').update({ rank: u.rank }).eq('id', u.id));
+          await Promise.all(finalPromises);
         }
       }
     } catch (err) {
