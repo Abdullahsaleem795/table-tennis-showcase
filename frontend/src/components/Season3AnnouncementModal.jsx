@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Trophy, Calendar, MapPin, Clock, X } from 'lucide-react';
+import { FaTrophy, FaCalendarAlt, FaMapMarkerAlt, FaClock, FaTimes } from 'react-icons/fa';
 import './Season3AnnouncementModal.css';
 
 const Season3AnnouncementModal = () => {
@@ -41,11 +41,11 @@ const Season3AnnouncementModal = () => {
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
           >
             <button className="announcement-close" onClick={() => setIsOpen(false)}>
-              <X size={24} />
+              <FaTimes size={20} />
             </button>
 
             <div className="announcement-header">
-              <Trophy size={48} className="announcement-icon" />
+              <FaTrophy size={48} className="announcement-icon" />
               <h2 className="announcement-title">SEASON 3 FINALS</h2>
               <p className="announcement-subtitle">The Ultimate Battle for Rank</p>
             </div>
@@ -59,15 +59,15 @@ const Season3AnnouncementModal = () => {
 
               <div className="announcement-details">
                 <div className="detail-item">
-                  <Calendar size={20} className="detail-icon" />
+                  <FaCalendarAlt size={18} className="detail-icon" />
                   <span>Thursday, 30th July</span>
                 </div>
                 <div className="detail-item">
-                  <Clock size={20} className="detail-icon" />
+                  <FaClock size={18} className="detail-icon" />
                   <span>5:00 PM (PKT)</span>
                 </div>
                 <div className="detail-item">
-                  <MapPin size={20} className="detail-icon" />
+                  <FaMapMarkerAlt size={18} className="detail-icon" />
                   <span>Staff Club Table Tennis Room</span>
                 </div>
               </div>
