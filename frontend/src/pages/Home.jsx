@@ -7,6 +7,7 @@ import PlayerCard from '../components/PlayerCard';
 
 import { CardSkeleton } from '../components/Skeleton';
 import { getThumbUrl, fallbackToFullImage } from '../utils/media';
+import Season3AnnouncementModal from '../components/Season3AnnouncementModal';
 
 const Hero3D = lazy(() => import('../components/Hero3D'));
 
@@ -78,6 +79,7 @@ const Home = () => {
 
   return (
     <div style={{ position: 'relative', overflow: 'hidden' }}>
+      <Season3AnnouncementModal />
 
       <div className="bg-glow bg-glow-1"></div>
       <div className="bg-glow bg-glow-2"></div>
