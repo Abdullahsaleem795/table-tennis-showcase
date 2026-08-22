@@ -25,7 +25,10 @@ const storage = process.env.VERCEL ? multer.memoryStorage() : multer.diskStorage
 });
 
 const fileFilter = (req, file, cb) => {
-  if (file.mimetype.startsWith('image/') || file.mimetype.startsWith('video/')) {
+  const allowedExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.mp4', '.webm', '.mov', '.avi'];
+  const ext = path.extname(file.originalname).toLowerCase();
+  
+  if ((file.mimetype.startsWith('image/') || file.mimetype.startsWith('video/')) && allowedExtensions.includes(ext)) {
     return cb(null, true);
   }
   cb(new Error('Only valid image and video files are allowed!'));
