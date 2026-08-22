@@ -10,7 +10,8 @@ import { getThumbUrl, fallbackToFullImage } from '../utils/media';
 import Season3AnnouncementModal from '../components/Season3AnnouncementModal';
 import PopupModal from '../components/PopupModal';
 
-// Removed Hero3D in favor of static video
+const Hero3D = lazy(() => import('../components/Hero3D'));
+
 const Home = () => {
   const [settings, setSettings] = useState(null);
   const [stats, setStats] = useState({
@@ -179,28 +180,22 @@ const Home = () => {
             </motion.form>
           </div>
           
-          {/* Hero Video Asset */}
+          {/* 3D Reactive Hero Asset */}
           <div style={{
             position: 'relative',
             minHeight: '420px',
             height: '60vh',
             width: '100%',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            overflow: 'hidden',
-            borderRadius: '24px',
-            boxShadow: '0 20px 40px rgba(0,0,0,0.4)',
-            border: '2px solid rgba(255, 255, 255, 0.1)'
+            background: 'transparent',
+            pointerEvents: 'auto',
           }}>
-            <video 
-              src="/Animation.mp4" 
-              autoPlay 
-              loop 
-              muted 
-              playsInline
-              style={{ width: '100%', height: '100%', objectFit: 'cover', background: '#000' }}
-            />
+            <Suspense fallback={
+              <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-outline)' }}>
+                <span>Loading interactive scene...</span>
+              </div>
+            }>
+              <Hero3D />
+            </Suspense>
           </div>
         </div>
       </section>
