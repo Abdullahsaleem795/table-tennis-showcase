@@ -28,7 +28,7 @@ const PopupModal = () => {
               <FaTimes />
             </button>
             <img 
-              src="/WhatsApp%20Image%202026-08-22%20at%2010.41.01%20PM.jpeg" 
+              src="/poster.jpeg" 
               alt="Star Contender Tournament Announcement" 
               className="popup-image" 
             />
