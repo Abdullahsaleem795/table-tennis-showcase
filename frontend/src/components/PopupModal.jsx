@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaTimes } from 'react-icons/fa';
+import posterImg from '../../public/poster.jpeg';
 import './PopupModal.css';
 
 const PopupModal = () => {
@@ -28,7 +29,7 @@ const PopupModal = () => {
               <FaTimes />
             </button>
             <img 
-              src="/poster.jpeg" 
+              src={posterImg} 
               alt="Star Contender Tournament Announcement" 
               className="popup-image" 
             />
